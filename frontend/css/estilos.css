@@ -1,0 +1,337 @@
+:root {
+  --fondo: #0f1720;
+  --superficie: #18232f;
+  --borde: #26333f;
+  --texto: #e6edf3;
+  --tenue: #93a3b1;
+  --acento: #3fb950;
+  --alerta: #d29922;
+  --error: #f85149;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+/* --- Barra superior: identidad siempre visible --- */
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+}
+
+.marca { display: flex; align-items: center; gap: 0.6rem; }
+.marca h1 { font-size: 1.15rem; margin: 0; font-weight: 600; }
+.pelota { font-size: 1.4rem; }
+
+.identidad { display: flex; align-items: center; gap: 0.5rem; }
+
+.chip {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  color: var(--tenue);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+}
+
+.entorno[data-entorno="development"] { color: var(--alerta); border-color: var(--alerta); }
+.entorno[data-entorno="production"]  { color: var(--acento); border-color: var(--acento); }
+
+.estado { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--tenue); }
+.punto { width: 8px; height: 8px; border-radius: 50%; background: var(--tenue); }
+
+.estado[data-estado="ok"]      .punto { background: var(--acento); }
+.estado[data-estado="parcial"] .punto { background: var(--alerta); }
+.estado[data-estado="error"]   .punto { background: var(--error); }
+.estado[data-estado="ok"]      .etiqueta { color: var(--acento); }
+.estado[data-estado="parcial"] .etiqueta { color: var(--alerta); }
+.estado[data-estado="error"]   .etiqueta { color: var(--error); }
+
+/* --- Contenido --- */
+main {
+  max-width: 760px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 1.4rem;
+}
+
+.tarjeta h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+.bajada { color: var(--tenue); margin: 0 0 1.2rem; font-size: 0.9rem; }
+
+.detalle dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1.5rem;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.detalle dt { color: var(--tenue); }
+.detalle dd { margin: 0; font-family: ui-monospace, "Cascadia Code", monospace; }
+.vacio { color: var(--tenue); font-size: 0.88rem; margin: 0; }
+
+.encabezado-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.encabezado-seccion h2 { margin: 0; }
+
+/* --- Formulario --- */
+fieldset {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 1rem 1.1rem 1.1rem;
+  margin: 0 0 1rem;
+}
+
+legend {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tenue);
+  padding: 0 0.4rem;
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.85rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--tenue);
+}
+
+/* El input se pega abajo: así todos los de una fila quedan alineados
+   aunque la etiqueta ocupe una línea más. */
+label > input, label > select { margin-top: auto; }
+
+.campo { display: block; }
+.opcional { color: #6b7a89; font-size: 0.72rem; font-style: normal; }
+
+input, select {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--acento);
+}
+
+.botones { display: flex; gap: 0.6rem; }
+
+button {
+  font-family: inherit;
+  font-size: 0.88rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+button:disabled { opacity: 0.6; cursor: default; }
+
+.primario { background: var(--acento); color: #06240d; font-weight: 600; }
+.primario:hover:not(:disabled) { filter: brightness(1.1); }
+
+.secundario { background: transparent; color: var(--tenue); border-color: var(--borde); }
+.secundario:hover { color: var(--texto); }
+
+.error {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid var(--error);
+  color: #ffb3ae;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.86rem;
+  margin: 0 0 1rem;
+}
+
+/* --- Tabla --- */
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+
+th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tenue);
+  padding: 0 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+td { padding: 0.55rem 0.6rem; border-bottom: 1px solid rgba(38, 51, 63, 0.6); }
+tr:last-child td { border-bottom: none; }
+
+.rival { font-weight: 500; }
+
+.condicion {
+  font-size: 0.68rem;
+  color: var(--tenue);
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  padding: 0 0.25rem;
+  margin-left: 0.3rem;
+}
+
+.marcador { font-family: ui-monospace, "Cascadia Code", monospace; }
+
+.resultado {
+  display: inline-block;
+  width: 1.5rem;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.1rem 0;
+}
+
+.resultado[data-resultado="Victoria"] { background: rgba(63, 185, 80, 0.18); color: var(--acento); }
+.resultado[data-resultado="Empate"]   { background: rgba(210, 153, 34, 0.18); color: var(--alerta); }
+.resultado[data-resultado="Derrota"]  { background: rgba(248, 81, 73, 0.18); color: var(--error); }
+
+.acciones { text-align: right; white-space: nowrap; }
+
+.enlace {
+  background: none;
+  border: none;
+  color: var(--tenue);
+  padding: 0.2rem 0.35rem;
+  font-size: 0.82rem;
+  text-decoration: underline;
+}
+
+.enlace:hover { color: var(--texto); }
+.enlace.peligro:hover { color: var(--error); }
+
+/* --- Navegación --- */
+.nav { display: flex; gap: 0.2rem; margin-left: 0.8rem; }
+
+.nav a {
+  color: var(--tenue);
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+}
+
+.nav a:hover { color: var(--texto); background: rgba(255, 255, 255, 0.04); }
+
+.nav a[aria-current="page"] {
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* --- Veredicto cábala / yeta --- */
+.veredicto { border-left: 3px solid var(--borde); }
+.veredicto[data-veredicto="cabala"] { border-left-color: var(--acento); }
+.veredicto[data-veredicto="yeta"]   { border-left-color: var(--error); }
+
+.dictamen { font-size: 1.6rem; font-weight: 700; margin: 0.2rem 0 0.4rem; }
+.veredicto[data-veredicto="cabala"] .dictamen { color: var(--acento); }
+.veredicto[data-veredicto="yeta"]   .dictamen { color: var(--error); }
+.veredicto[data-veredicto="indefinido"] .dictamen { color: var(--tenue); }
+
+.comparacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--borde);
+}
+
+.lado { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; flex: 1; }
+.versus { color: var(--tenue); font-size: 0.8rem; text-transform: uppercase; }
+.numerote { font-size: 1.9rem; font-weight: 700; font-family: ui-monospace, monospace; }
+.rotulo { font-size: 0.75rem; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.05em; }
+.detalle-chico { font-size: 0.78rem; color: var(--tenue); }
+
+/* --- Tarjetitas de récord --- */
+.tarjetitas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.7rem;
+}
+
+.tarjetita {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+}
+
+/* Un valor como "7 - 3 - 4" no se parte en dos líneas: descuadra la fila. */
+.tarjetita .valor {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+/* --- Rivales destacados --- */
+.destacados { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.2rem; }
+
+.destacado {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 0.8rem 0.9rem;
+}
+
+.destacado .nombre { font-size: 1.1rem; font-weight: 600; }
+.destacado.talisman  { border-color: rgba(63, 185, 80, 0.5); }
+.destacado.maldicion { border-color: rgba(248, 81, 73, 0.5); }
+.destacado.talisman .rotulo  { color: var(--acento); }
+.destacado.maldicion .rotulo { color: var(--error); }
+
+/* --- Tablas anchas --- */
+.scroll-x { overflow-x: auto; }
+.scroll-x table { min-width: 520px; }
+
+td.efec { font-family: ui-monospace, monospace; }
+tr.apagada { color: #5c6b7a; }
+tr.apagada td { color: inherit; }
+td.resaltado { color: var(--acento); }
+td.tenue { color: var(--tenue); font-size: 0.82rem; }

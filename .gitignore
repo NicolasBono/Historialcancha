@@ -1,0 +1,20 @@
+# --- Configuración local: nunca se versiona (puede tener credenciales) ---
+backend/src/HistorialCancha.Api/appsettings.Development.json
+backend/src/HistorialCancha.Api/appsettings.Production.json
+frontend/js/config.js
+
+# --- Compilados de .NET ---
+bin/
+obj/
+*.user
+*.suo
+
+# --- Editores ---
+.vs/
+.vscode/
+.idea/
+
+# --- Sistema operativo ---
+Thumbs.db
+desktop.ini
+.DS_Store

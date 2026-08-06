@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas · Mi historial de hincha</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="barra">
+    <div class="marca">
+      <span class="pelota" aria-hidden="true">⚽</span>
+      <h1>Mi historial de hincha</h1>
+      <nav class="nav">
+        <a href="index.html">Historial</a>
+        <a href="estadisticas.html" aria-current="page">Estadísticas</a>
+      </nav>
+    </div>
+
+    <div class="identidad">
+      <span id="estado-backend" class="estado" data-estado="pendiente">
+        <span class="punto" aria-hidden="true"></span>
+        <span class="etiqueta">chequeando backend…</span>
+      </span>
+      <span id="entorno" class="chip entorno">—</span>
+      <span id="version" class="chip version">—</span>
+    </div>
+  </header>
+
+  <main>
+
+    <p id="error-estadisticas" class="error" role="alert" hidden></p>
+
+    <!-- El corazón de la app -->
+    <section class="tarjeta veredicto" id="tarjeta-veredicto">
+      <h2>¿Cábala o yeta?</h2>
+      <p class="dictamen" id="dictamen">—</p>
+      <p class="bajada" id="explicacion">Calculando…</p>
+
+      <div class="comparacion" id="comparacion" hidden>
+        <div class="lado">
+          <span class="rotulo">En la cancha</span>
+          <span class="numerote" id="efec-cancha">—</span>
+          <span class="detalle-chico" id="detalle-cancha"></span>
+        </div>
+        <div class="versus">vs</div>
+        <div class="lado">
+          <span class="rotulo">Por otro medio</span>
+          <span class="numerote" id="efec-otro">—</span>
+          <span class="detalle-chico" id="detalle-otro"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Récord global</h2>
+      <div class="tarjetitas" id="global"></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Por modalidad</h2>
+      <div class="scroll-x">
+        <table id="tabla-modalidad">
+          <thead>
+            <tr>
+              <th>Modalidad</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
+              <th>GF</th><th>GC</th><th>DG</th><th>Efec.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Rachas</h2>
+      <div class="scroll-x">
+        <table id="tabla-rachas">
+          <thead>
+            <tr><th>Tipo</th><th>Actual</th><th>Más larga</th><th>Cuándo</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="encabezado-seccion">
+        <h2>Rivales</h2>
+        <span class="chip" id="umbral">—</span>
+      </div>
+
+      <div class="destacados" id="destacados"></div>
+
+      <div class="scroll-x">
+        <table id="tabla-rivales">
+          <thead>
+            <tr>
+              <th>Rival</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
+              <th>GF</th><th>GC</th><th>DG</th><th>Efec.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="vacio" id="sin-rivales" hidden></p>
+    </section>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/estadisticas.js"></script>
+</body>
+</html>
