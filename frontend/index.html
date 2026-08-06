@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi historial de hincha</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="barra">
+    <div class="marca">
+      <span class="pelota" aria-hidden="true">⚽</span>
+      <h1>Mi historial de hincha</h1>
+      <nav class="nav">
+        <a href="index.html" aria-current="page">Historial</a>
+        <a href="estadisticas.html">Estadísticas</a>
+      </nav>
+    </div>
+
+    <div class="identidad">
+      <span id="estado-backend" class="estado" data-estado="pendiente">
+        <span class="punto" aria-hidden="true"></span>
+        <span class="etiqueta">chequeando backend…</span>
+      </span>
+      <span id="entorno" class="chip entorno">—</span>
+      <span id="version" class="chip version">—</span>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="tarjeta">
+      <h2 id="titulo-form">Registrar partido</h2>
+
+      <form id="form-partido" novalidate>
+        <fieldset>
+          <legend>El partido</legend>
+          <div class="grilla">
+            <label><span class="campo">Fecha</span>
+              <input type="date" id="fecha" required>
+            </label>
+            <label><span class="campo">Rival</span>
+              <input type="text" id="rival" maxlength="80" placeholder="Rival" required>
+            </label>
+            <label><span class="campo">Torneo</span>
+              <input type="text" id="torneo" maxlength="80" placeholder="Liga, Copa…" required>
+            </label>
+            <label><span class="campo">Condición</span>
+              <select id="condicion">
+                <option value="Local">Local</option>
+                <option value="Visitante">Visitante</option>
+              </select>
+            </label>
+            <label><span class="campo">Estadio <em class="opcional">opcional</em></span>
+              <input type="text" id="estadio" maxlength="120">
+            </label>
+            <label><span class="campo">Goles a favor</span>
+              <input type="number" id="golesAFavor" min="0" value="0" required>
+            </label>
+            <label><span class="campo">Goles en contra</span>
+              <input type="number" id="golesEnContra" min="0" value="0" required>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Cómo lo viviste</legend>
+          <div class="grilla">
+            <label><span class="campo">Modalidad</span>
+              <select id="modalidad">
+                <option value="EnCancha">En cancha</option>
+                <option value="TV">TV</option>
+                <option value="Streaming">Streaming</option>
+                <option value="Radio">Radio</option>
+                <option value="NoLoVi">No lo vi</option>
+              </select>
+            </label>
+            <label><span class="campo">Sector <em class="opcional">opcional</em></span>
+              <input type="text" id="sector" maxlength="80" placeholder="Popular, platea…">
+            </label>
+            <label><span class="campo">Con quién <em class="opcional">opcional</em></span>
+              <input type="text" id="conQuien" maxlength="120">
+            </label>
+            <label><span class="campo">Nota <em class="opcional">1 a 10</em></span>
+              <input type="number" id="nota" min="1" max="10">
+            </label>
+          </div>
+        </fieldset>
+
+        <p id="error-form" class="error" role="alert" hidden></p>
+
+        <div class="botones">
+          <button type="submit" id="btn-guardar" class="primario">Guardar</button>
+          <button type="button" id="btn-cancelar" class="secundario" hidden>Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="tarjeta">
+      <div class="encabezado-seccion">
+        <h2>Mi historial</h2>
+        <span id="contador" class="chip">—</span>
+      </div>
+
+      <p id="sin-partidos" class="vacio" hidden>Todavía no cargaste ningún partido.</p>
+
+      <table id="tabla-partidos" hidden>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Rival</th>
+            <th>Torneo</th>
+            <th>Marcador</th>
+            <th>Res.</th>
+            <th>Modalidad</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cuerpo-tabla"></tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/partidos.js"></script>
+</body>
+</html>
