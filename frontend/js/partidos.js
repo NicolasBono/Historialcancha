@@ -12,6 +12,7 @@ const MODALIDADES = {
 const RESULTADOS = { Victoria: "V", Empate: "E", Derrota: "D" };
 
 let enEdicion = null;   // id del partido que se está editando, o null si es un alta
+let equipos = [];       // catálogo de rivales; lo sirve la API, no vive en el frontend
 
 /* ---------- utilidades ---------- */
 
@@ -34,6 +35,22 @@ function mostrarError(mensaje) {
 
 function limpiarError() {
   const caja = document.getElementById("error-form");
+  caja.hidden = true;
+  caja.textContent = "";
+}
+
+/**
+ * Los errores del formulario viven dentro del modal. Los de la tabla —borrar, por
+ * ejemplo— ocurren con el modal cerrado, así que necesitan su propio lugar visible.
+ */
+function mostrarErrorListado(mensaje) {
+  const caja = document.getElementById("error-listado");
+  caja.textContent = mensaje;
+  caja.hidden = false;
+}
+
+function limpiarErrorListado() {
+  const caja = document.getElementById("error-listado");
   caja.hidden = true;
   caja.textContent = "";
 }
@@ -86,6 +103,45 @@ async function cargarPartidos() {
   }
 }
 
+/* ---------- catálogo de rivales ---------- */
+
+function poblarSelectDeRivales() {
+  document.getElementById("rival").innerHTML =
+    ['<option value="">Elegí un equipo…</option>']
+      .concat(equipos.map((e) => `<option value="${escapar(e)}">${escapar(e)}</option>`))
+      .join("");
+}
+
+/**
+ * Un partido viejo puede tener un rival que hoy no está en la lista: un club que
+ * descendió, o una carga anterior a que existiera el catálogo. Editarlo no puede
+ * perderle el rival, así que se le agrega su propia opción.
+ */
+function asegurarOpcionDeRival(rival) {
+  if (!rival) return;
+
+  const select = document.getElementById("rival");
+  const yaEsta = [...select.options].some((o) => o.value === rival);
+  if (yaEsta) return;
+
+  select.insertAdjacentHTML(
+    "beforeend",
+    `<option value="${escapar(rival)}">${escapar(rival)} (fuera de la lista)</option>`
+  );
+}
+
+async function cargarEquipos() {
+  try {
+    equipos = await API.listarEquipos();
+    poblarSelectDeRivales();
+  } catch (error) {
+    // Sin catálogo no se puede elegir rival, así que el alta no tendría sentido.
+    // El listado y las estadísticas siguen funcionando.
+    document.getElementById("btn-agregar").disabled = true;
+    mostrarErrorListado(`No se pudo cargar la lista de equipos (${error.message}) — el alta queda deshabilitada.`);
+  }
+}
+
 /* ---------- formulario ---------- */
 
 function leerFormulario() {
@@ -107,17 +163,38 @@ function leerFormulario() {
   };
 }
 
-function limpiarFormulario() {
+/**
+ * Deja el formulario en modo alta. Se llama al ABRIR, nunca al cerrar: hacerlo en el
+ * evento `close` deja un reset encolado que puede pisar la carga de una edición
+ * inmediata posterior —y peor, borrar `enEdicion`, con lo que guardar daría de alta.
+ */
+function resetearFormulario() {
   document.getElementById("form-partido").reset();
+  // Repoblar borra cualquier opción "(fuera de la lista)" que dejó una edición anterior.
+  poblarSelectDeRivales();
   enEdicion = null;
   document.getElementById("titulo-form").textContent = "Registrar partido";
   document.getElementById("btn-guardar").textContent = "Guardar";
-  document.getElementById("btn-cancelar").hidden = true;
   limpiarError();
 }
 
-function cargarEnFormulario(p) {
+/* ---------- modal ---------- */
+
+function modal() {
+  return document.getElementById("modal-partido");
+}
+
+function abrirAlta() {
+  resetearFormulario();
+  modal().showModal();
+  document.getElementById("fecha").focus();
+}
+
+function abrirEdicion(p) {
   const set = (id, v) => { document.getElementById(id).value = v ?? ""; };
+
+  resetearFormulario();
+  asegurarOpcionDeRival(p.rival);
 
   set("fecha", p.fecha);
   set("rival", p.rival);
@@ -134,9 +211,8 @@ function cargarEnFormulario(p) {
   enEdicion = p.id;
   document.getElementById("titulo-form").textContent = `Editando el partido del ${formatearFecha(p.fecha)}`;
   document.getElementById("btn-guardar").textContent = "Guardar cambios";
-  document.getElementById("btn-cancelar").hidden = false;
-  limpiarError();
-  document.getElementById("form-partido").scrollIntoView({ behavior: "smooth", block: "start" });
+  modal().showModal();
+  document.getElementById("rival").focus();
 }
 
 async function guardar(evento) {
@@ -155,7 +231,8 @@ async function guardar(evento) {
       await API.actualizarPartido(enEdicion, partido);
     }
 
-    limpiarFormulario();
+    // Sólo se cierra si el backend aceptó: un rechazo tiene que quedar a la vista.
+    modal().close();
     await cargarPartidos();
   } catch (error) {
     // El backend ya mandó el motivo: se muestra tal cual, sin recargar la página
@@ -173,9 +250,10 @@ async function manejarClickTabla(evento) {
   const eliminar = evento.target.closest("[data-eliminar]");
 
   if (editar) {
+    limpiarErrorListado();
     const partidos = await API.listarPartidos();
     const partido = partidos.find((p) => p.id === Number(editar.dataset.editar));
-    if (partido) cargarEnFormulario(partido);
+    if (partido) abrirEdicion(partido);
     return;
   }
 
@@ -183,12 +261,13 @@ async function manejarClickTabla(evento) {
     const id = Number(eliminar.dataset.eliminar);
     if (!confirm("¿Borrar este partido? También se borra cómo lo viviste.")) return;
 
+    limpiarErrorListado();
+
     try {
       await API.eliminarPartido(id);
-      if (enEdicion === id) limpiarFormulario();
       await cargarPartidos();
     } catch (error) {
-      mostrarError(error.message);
+      mostrarErrorListado(error.message);
     }
   }
 }
@@ -200,8 +279,18 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fecha").max = new Date().toISOString().slice(0, 10);
 
   document.getElementById("form-partido").addEventListener("submit", guardar);
-  document.getElementById("btn-cancelar").addEventListener("click", limpiarFormulario);
+  document.getElementById("btn-agregar").addEventListener("click", abrirAlta);
   document.getElementById("tabla-partidos").addEventListener("click", manejarClickTabla);
 
+  document.getElementById("btn-cancelar").addEventListener("click", () => modal().close());
+  document.getElementById("btn-cerrar").addEventListener("click", () => modal().close());
+
+  // Un click sobre el fondo oscuro tiene como target al propio <dialog>:
+  // si el click hubiera caído dentro del panel, el target sería algo de adentro.
+  modal().addEventListener("click", (evento) => {
+    if (evento.target === modal()) modal().close();
+  });
+
+  cargarEquipos();
   cargarPartidos();
 });

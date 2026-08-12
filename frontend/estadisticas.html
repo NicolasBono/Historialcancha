@@ -56,10 +56,20 @@
     <section class="tarjeta">
       <h2>Récord global</h2>
       <div class="tarjetitas" id="global"></div>
+      <div id="reparto-global"></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Forma reciente</h2>
+      <p class="bajada">Los últimos partidos, del más viejo al más nuevo.</p>
+      <div id="forma-reciente"></div>
+      <p class="vacio" id="sin-forma" hidden></p>
     </section>
 
     <section class="tarjeta">
       <h2>Por modalidad</h2>
+      <p class="bajada">Efectividad en cada modalidad, sobre 100%.</p>
+      <div class="viz" id="viz-modalidad"></div>
       <div class="scroll-x">
         <table id="tabla-modalidad">
           <thead>
@@ -93,6 +103,8 @@
 
       <div class="destacados" id="destacados"></div>
 
+      <div class="viz" id="viz-rivales"></div>
+
       <div class="scroll-x">
         <table id="tabla-rivales">
           <thead>
@@ -107,11 +119,63 @@
       <p class="vacio" id="sin-rivales" hidden></p>
     </section>
 
+    <section class="tarjeta">
+      <div class="encabezado-seccion">
+        <h2>Desgloses</h2>
+        <span class="chip" id="corte-temporada">—</span>
+      </div>
+
+      <h3>Local y visitante</h3>
+      <div class="viz" id="viz-condicion"></div>
+      <div class="scroll-x">
+        <table id="tabla-condicion">
+          <thead>
+            <tr>
+              <th>Condición</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
+              <th>GF</th><th>GC</th><th>DG</th><th>Efec.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3>Por torneo</h3>
+      <div class="viz" id="viz-torneo"></div>
+      <div class="scroll-x">
+        <table id="tabla-torneo">
+          <thead>
+            <tr>
+              <th>Torneo</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
+              <th>GF</th><th>GC</th><th>DG</th><th>Efec.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="vacio" id="sin-torneos" hidden></p>
+
+      <h3>Por temporada</h3>
+      <div class="viz" id="viz-temporada"></div>
+      <div class="scroll-x">
+        <table id="tabla-temporada">
+          <thead>
+            <tr>
+              <th>Temporada</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
+              <th>GF</th><th>GC</th><th>DG</th><th>Efec.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="vacio" id="sin-temporadas" hidden></p>
+    </section>
+
   </main>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/graficos.js"></script>
   <script src="js/estadisticas.js"></script>
 </body>
 </html>

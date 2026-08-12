@@ -31,78 +31,15 @@
   <main>
 
     <section class="tarjeta">
-      <h2 id="titulo-form">Registrar partido</h2>
-
-      <form id="form-partido" novalidate>
-        <fieldset>
-          <legend>El partido</legend>
-          <div class="grilla">
-            <label><span class="campo">Fecha</span>
-              <input type="date" id="fecha" required>
-            </label>
-            <label><span class="campo">Rival</span>
-              <input type="text" id="rival" maxlength="80" placeholder="Rival" required>
-            </label>
-            <label><span class="campo">Torneo</span>
-              <input type="text" id="torneo" maxlength="80" placeholder="Liga, Copa…" required>
-            </label>
-            <label><span class="campo">Condición</span>
-              <select id="condicion">
-                <option value="Local">Local</option>
-                <option value="Visitante">Visitante</option>
-              </select>
-            </label>
-            <label><span class="campo">Estadio <em class="opcional">opcional</em></span>
-              <input type="text" id="estadio" maxlength="120">
-            </label>
-            <label><span class="campo">Goles a favor</span>
-              <input type="number" id="golesAFavor" min="0" value="0" required>
-            </label>
-            <label><span class="campo">Goles en contra</span>
-              <input type="number" id="golesEnContra" min="0" value="0" required>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Cómo lo viviste</legend>
-          <div class="grilla">
-            <label><span class="campo">Modalidad</span>
-              <select id="modalidad">
-                <option value="EnCancha">En cancha</option>
-                <option value="TV">TV</option>
-                <option value="Streaming">Streaming</option>
-                <option value="Radio">Radio</option>
-                <option value="NoLoVi">No lo vi</option>
-              </select>
-            </label>
-            <label><span class="campo">Sector <em class="opcional">opcional</em></span>
-              <input type="text" id="sector" maxlength="80" placeholder="Popular, platea…">
-            </label>
-            <label><span class="campo">Con quién <em class="opcional">opcional</em></span>
-              <input type="text" id="conQuien" maxlength="120">
-            </label>
-            <label><span class="campo">Nota <em class="opcional">1 a 10</em></span>
-              <input type="number" id="nota" min="1" max="10">
-            </label>
-          </div>
-        </fieldset>
-
-        <p id="error-form" class="error" role="alert" hidden></p>
-
-        <div class="botones">
-          <button type="submit" id="btn-guardar" class="primario">Guardar</button>
-          <button type="button" id="btn-cancelar" class="secundario" hidden>Cancelar</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="tarjeta">
       <div class="encabezado-seccion">
         <h2>Mi historial</h2>
-        <span id="contador" class="chip">—</span>
+        <div class="acciones-seccion">
+          <span id="contador" class="chip">—</span>
+          <button type="button" id="btn-agregar" class="primario">Agregar partido</button>
+        </div>
       </div>
 
+      <p id="error-listado" class="error" role="alert" hidden></p>
       <p id="sin-partidos" class="vacio" hidden>Todavía no cargaste ningún partido.</p>
 
       <table id="tabla-partidos" hidden>
@@ -122,6 +59,79 @@
     </section>
 
   </main>
+
+  <!-- Alta y edición viven acá: el mismo formulario para las dos cosas. -->
+  <dialog id="modal-partido" class="modal" aria-labelledby="titulo-form">
+    <div class="modal-encabezado">
+      <h2 id="titulo-form">Registrar partido</h2>
+      <button type="button" id="btn-cerrar" class="cerrar" aria-label="Cerrar">&times;</button>
+    </div>
+
+    <form id="form-partido" novalidate>
+      <fieldset>
+        <legend>El partido</legend>
+        <div class="grilla">
+          <label><span class="campo">Fecha</span>
+            <input type="date" id="fecha" required>
+          </label>
+          <label><span class="campo">Rival</span>
+            <select id="rival" required>
+              <option value="">Elegí un equipo…</option>
+            </select>
+          </label>
+          <label><span class="campo">Torneo</span>
+            <input type="text" id="torneo" maxlength="80" placeholder="Liga, Copa…" required>
+          </label>
+          <label><span class="campo">Condición</span>
+            <select id="condicion">
+              <option value="Local">Local</option>
+              <option value="Visitante">Visitante</option>
+            </select>
+          </label>
+          <label><span class="campo">Estadio <em class="opcional">opcional</em></span>
+            <input type="text" id="estadio" maxlength="120">
+          </label>
+          <label><span class="campo">Goles a favor</span>
+            <input type="number" id="golesAFavor" min="0" value="0" required>
+          </label>
+          <label><span class="campo">Goles en contra</span>
+            <input type="number" id="golesEnContra" min="0" value="0" required>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cómo lo viviste</legend>
+        <div class="grilla">
+          <label><span class="campo">Modalidad</span>
+            <select id="modalidad">
+              <option value="EnCancha">En cancha</option>
+              <option value="TV">TV</option>
+              <option value="Streaming">Streaming</option>
+              <option value="Radio">Radio</option>
+              <option value="NoLoVi">No lo vi</option>
+            </select>
+          </label>
+          <label><span class="campo">Sector <em class="opcional">opcional</em></span>
+            <input type="text" id="sector" maxlength="80" placeholder="Popular, platea…">
+          </label>
+          <label><span class="campo">Con quién <em class="opcional">opcional</em></span>
+            <input type="text" id="conQuien" maxlength="120">
+          </label>
+          <label><span class="campo">Nota <em class="opcional">1 a 10</em></span>
+            <input type="number" id="nota" min="1" max="10">
+          </label>
+        </div>
+      </fieldset>
+
+      <p id="error-form" class="error" role="alert" hidden></p>
+
+      <div class="botones">
+        <button type="submit" id="btn-guardar" class="primario">Guardar</button>
+        <button type="button" id="btn-cancelar" class="secundario">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>

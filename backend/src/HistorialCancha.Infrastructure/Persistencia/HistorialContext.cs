@@ -9,6 +9,7 @@ public class HistorialContext : DbContext
 
     public DbSet<Partido> Partidos => Set<Partido>();
     public DbSet<Vivencia> Vivencias => Set<Vivencia>();
+    public DbSet<Equipo> Equipos => Set<Equipo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

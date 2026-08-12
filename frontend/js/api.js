@@ -48,6 +48,8 @@ const API = (() => {
 
     listarPartidos: () => pedir("/partidos"),
 
+    listarEquipos: () => pedir("/equipos"),
+
     crearPartido: (partido) => pedir("/partidos", {
       method: "POST",
       body: JSON.stringify(partido)
@@ -63,6 +65,7 @@ const API = (() => {
     estadisticasGlobal: () => pedir("/estadisticas/global"),
     estadisticasModalidad: () => pedir("/estadisticas/modalidad"),
     estadisticasRachas: () => pedir("/estadisticas/rachas"),
-    estadisticasRivales: () => pedir("/estadisticas/rivales")
+    estadisticasRivales: () => pedir("/estadisticas/rivales"),
+    estadisticasDesgloses: () => pedir("/estadisticas/desgloses")
   };
 })();

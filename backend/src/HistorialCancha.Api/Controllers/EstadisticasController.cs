@@ -53,4 +53,12 @@ public class EstadisticasController : ControllerBase
         var partidos = await _repositorio.ObtenerTodosAsync(ct);
         return Ok(RankingRivales.Resolver(partidos, _opciones));
     }
+
+    /// <summary>FR21, FR22, FR23 — récord por condición, por torneo y por temporada.</summary>
+    [HttpGet("desgloses")]
+    public async Task<IActionResult> Desgloses(CancellationToken ct)
+    {
+        var partidos = await _repositorio.ObtenerTodosAsync(ct);
+        return Ok(CalculadoraDesgloses.Calcular(partidos, _opciones));
+    }
 }

@@ -14,10 +14,14 @@ Tres servicios independientes corriendo en local:
 El frontend **no** vive dentro del backend: son dos orígenes distintos y por eso la API
 tiene CORS configurado.
 
-**Estado actual: Épicas 1, 2 y 3 completas** — esqueleto con health check y esquema
-aplicado, registro de partidos con sus validaciones, y las estadísticas: récord global,
-desglose por modalidad con el veredicto cábala / yeta, rachas y ranking de rivales.
-Falta la Épica 4 (desgloses por condición, torneo y temporada).
+**Estado actual: Fase 1 completa** — las cuatro épicas: esqueleto con health check y
+esquema aplicado, registro de partidos con sus validaciones, y las estadísticas: récord
+global, desglose por modalidad con el veredicto cábala / yeta, rachas, ranking de rivales
+y desgloses por condición, torneo y temporada.
+
+El alta se abre en un modal y el rival **se elige de una lista**: los 30 clubes de Primera
+viven en la tabla `Equipos`, que se carga sola con las migraciones. Las estadísticas se
+grafican con barras hechas en HTML y CSS, sin ninguna librería.
 El detalle está en [docs/](docs/): [brief](docs/brief.md), [PRD](docs/prd.md),
 [arquitectura](docs/architecture.md) y [épicas](docs/epics.md).
 
@@ -83,7 +87,15 @@ Desde `backend/`:
 dotnet ef database update -p src/HistorialCancha.Infrastructure -s src/HistorialCancha.Api
 ```
 
-Crea `Partidos`, `Vivencias`, sus restricciones y el índice único por fecha.
+Crea `Partidos`, `Vivencias` y `Equipos`, sus restricciones y el índice único por fecha.
+`Equipos` queda cargada con los 30 clubes de Primera: el seed va dentro de la migración,
+así que no hay ningún script extra que correr.
+
+> **Los equipos son los de la temporada 2025.** Cuando cambie la categoría, la forma de
+> actualizarla es otra migración (`dotnet ef migrations add`), nunca un `UPDATE` a mano:
+> la lista vive en `EquipoConfiguration.PrimeraDivision`. Un club que desciende se marca
+> `Activo = 0` en vez de borrarse, para que los partidos que ya jugaste contra él sigan
+> siendo válidos.
 
 ### 4. Backend
 
@@ -128,7 +140,7 @@ Nada está hardcodeado: todo sale de un archivo de configuración o de una varia
 |---|---|---|
 | `ConnectionStrings:HistorialCancha` | Cadena de conexión a MSSQL | `Server=.\SQLEXPRESS;Database=HistorialCancha;User Id=admin;Password=...;TrustServerCertificate=True` |
 | `App:Version` | Versión que informa el health check | `1.0.0` |
-| `App:MiEquipo` | Equipo propio; un rival nunca puede ser este valor | `Mi Equipo` |
+| `App:MiEquipo` | Equipo propio; un rival nunca puede ser este valor, y queda fuera del selector | `Racing Club` |
 | `App:MinPartidosRanking` | Partidos mínimos para entrar al ranking de rivales | `3` |
 | `App:MesInicioTemporada` | Mes de corte de temporada | `7` (julio) |
 | `App:MinPartidosVeredicto` | Partidos mínimos por grupo para el veredicto cábala/yeta | `5` |
@@ -162,9 +174,10 @@ El entorno sale de `ASPNETCORE_ENVIRONMENT`.
 ├── docs/                       # brief, PRD, arquitectura y épicas
 ├── db/setup.sql                # creación de base y usuario (una sola vez, como sysadmin)
 ├── frontend/                   # servicio 1 — sitio estático, sin build step
-│   ├── index.html
+│   ├── index.html              # historial + modal de alta/edición
+│   ├── estadisticas.html
 │   ├── css/estilos.css
-│   └── js/                     # config.js (local) · api.js · app.js
+│   └── js/                     # config.js (local) · api.js · app.js · graficos.js
 └── backend/                    # servicio 2 — solución .NET
     └── src/
         ├── HistorialCancha.Domain/          # lógica pura — CERO dependencias externas

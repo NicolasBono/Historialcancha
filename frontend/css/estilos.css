@@ -7,6 +7,18 @@
   --acento: #3fb950;
   --alerta: #d29922;
   --error: #f85149;
+
+  /* --- Tokens de visualización ---
+     Magnitud (efectividad) usa UNA sola serie: las modalidades, los rivales y los
+     torneos son categorías sin orden natural, así que pintarlas de distinto color
+     sería codificar dos veces el largo de la barra.
+
+     Victoria / empate / derrota reusan acento / alerta / error, que son colores de
+     estado, no de serie. Bajo deuteranopía el verde y el rojo son casi el mismo
+     color (ΔE 2.2), así que en esta app el color NUNCA va solo: toda barra apilada
+     lleva leyenda y todo resultado lleva su letra V/E/D. */
+  --viz-serie: #4b93e8;
+  --viz-pista: #212e3c;
 }
 
 * { box-sizing: border-box; }
@@ -76,6 +88,18 @@ main {
 }
 
 .tarjeta h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+
+/* Subtítulo de un corte dentro de una tarjeta. El primero no separa de nada. */
+.tarjeta h3 {
+  margin: 1.6rem 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tenue);
+}
+
+.tarjeta h3:first-of-type { margin-top: 0; }
 .bajada { color: var(--tenue); margin: 0 0 1.2rem; font-size: 0.9rem; }
 
 .detalle dl {
@@ -97,6 +121,44 @@ main {
   margin-bottom: 1rem;
 }
 .encabezado-seccion h2 { margin: 0; }
+.acciones-seccion { display: flex; align-items: center; gap: 0.7rem; }
+
+/* --- Modal de alta y edición --- */
+.modal {
+  width: min(660px, calc(100vw - 2rem));
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  /* El <dialog> no hereda del body: sin esto queda con los colores del navegador. */
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 1.4rem;
+}
+
+.modal::backdrop { background: rgba(6, 12, 18, 0.72); }
+
+.modal-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.modal-encabezado h2 { margin: 0; font-size: 1rem; }
+
+.cerrar {
+  background: none;
+  border: none;
+  color: var(--tenue);
+  font-size: 1.35rem;
+  line-height: 1;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+}
+
+.cerrar:hover { color: var(--texto); background: rgba(255, 255, 255, 0.06); }
 
 /* --- Formulario --- */
 fieldset {
@@ -197,7 +259,8 @@ th {
 td { padding: 0.55rem 0.6rem; border-bottom: 1px solid rgba(38, 51, 63, 0.6); }
 tr:last-child td { border-bottom: none; }
 
-.rival { font-weight: 500; }
+/* Primera columna de una tabla: el nombre de la fila pesa más que sus números. */
+.rival, td.clave { font-weight: 500; }
 
 .condicion {
   font-size: 0.68rem;
@@ -325,6 +388,75 @@ tr:last-child td { border-bottom: none; }
 .destacado.maldicion { border-color: rgba(248, 81, 73, 0.5); }
 .destacado.talisman .rotulo  { color: var(--acento); }
 .destacado.maldicion .rotulo { color: var(--error); }
+
+/* --- Gráficos ---
+   HTML y CSS, sin librerías. Cada gráfico convive con la tabla que ya existía:
+   la tabla es la versión leíble de los mismos números, no un duplicado. */
+.viz { display: grid; gap: 0.5rem; margin-bottom: 1.1rem; }
+
+.barra-fila {
+  display: grid;
+  grid-template-columns: minmax(72px, 130px) 1fr 3.4rem;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.82rem;
+}
+
+.barra-etiqueta {
+  color: var(--tenue);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Marca fina: 12px, muy por debajo del tope de 24px. La pista es un paso
+   por encima de la superficie, no un bloque saturado. */
+.barra-pista { background: var(--viz-pista); border-radius: 4px; height: 12px; }
+
+.barra-fill {
+  height: 100%;
+  background: var(--viz-serie);
+  /* Extremo redondeado del lado del dato, cuadrado contra la línea de base. */
+  border-radius: 0 4px 4px 0;
+}
+
+.barra-valor {
+  font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.barra-fila.apagada .barra-valor, .barra-fila.apagada .barra-etiqueta { color: #5c6b7a; }
+
+/* Apilada G-E-P: los 2px que separan los segmentos son fondo, no un borde. */
+.apilada { display: flex; gap: 2px; height: 14px; margin-bottom: 0.7rem; }
+.apilada .seg:first-child { border-radius: 4px 0 0 4px; }
+.apilada .seg:last-child  { border-radius: 0 4px 4px 0; }
+.apilada .seg:only-child   { border-radius: 4px; }
+
+[data-resultado="Victoria"].seg, i[data-resultado="Victoria"] { background: var(--acento); }
+[data-resultado="Empate"].seg,   i[data-resultado="Empate"]   { background: var(--alerta); }
+[data-resultado="Derrota"].seg,  i[data-resultado="Derrota"]  { background: var(--error); }
+
+/* La leyenda no es opcional: con daltonismo rojo-verde el verde y el rojo son
+   casi el mismo color, así que el texto es el que realmente distingue. */
+.leyenda { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.78rem; color: var(--tenue); }
+.leyenda span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.leyenda i { width: 9px; height: 9px; border-radius: 2px; }
+
+/* Forma reciente: cada casilla lleva su letra, nunca sólo el color. */
+.forma { display: flex; flex-wrap: wrap; gap: 3px; }
+
+.forma-casilla {
+  width: 1.4rem;
+  height: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
 
 /* --- Tablas anchas --- */
 .scroll-x { overflow-x: auto; }

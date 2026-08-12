@@ -18,12 +18,13 @@ Historialcancha/
 ├── docs/
 ├── frontend/                       # servicio 1 — sitio estático
 │   ├── index.html                  # listado de partidos + alta/edición
-│   ├── estadisticas.html           # récord, modalidades, rachas, rivales
+│   ├── estadisticas.html           # récord, modalidades, rachas, rivales, desgloses
 │   ├── css/estilos.css
 │   ├── js/
 │   │   ├── config.js               # generado desde config.example.js — NO se versiona
 │   │   ├── api.js                  # único punto que conoce la URL del backend
-│   │   ├── partidos.js
+│   │   ├── partidos.js             # listado + modal de alta/edición
+│   │   ├── graficos.js             # barras, reparto G-E-P y forma reciente
 │   │   ├── estadisticas.js
 │   │   └── app.js                  # badge de versión/entorno + estado del backend
 │   └── config.example.js
@@ -48,7 +49,7 @@ HistorialCancha.Api  ──►  HistorialCancha.Infrastructure  ──►  Histo
 
 | Proyecto | Contiene | Referencias NuGet |
 |---|---|---|
-| **Domain** | Entidades (`Partido`, `Vivencia`), enums (`Modalidad`, `Condicion`, `Resultado`), servicios de dominio (`ValidadorPartido`, y en `Estadisticas/`: `CalculadoraRecord`, `CalculadoraModalidad`, `CalculadoraRachas`, `RankingRivales`, `CalculadoraTemporada`), interfaces de repositorio (`IPartidoRepository`), excepción `ReglaDeNegocioException`, opciones de negocio (`OpcionesDominio`) | **ninguna** |
+| **Domain** | Entidades (`Partido`, `Vivencia`), enums (`Modalidad`, `Condicion`, `Resultado`), servicios de dominio (`ValidadorPartido`, y en `Estadisticas/`: `CalculadoraRecord`, `CalculadoraModalidad`, `CalculadoraRachas`, `RankingRivales`, `CalculadoraDesgloses`, `CalculadoraTemporada`), interfaces de repositorio (`IPartidoRepository`), excepción `ReglaDeNegocioException`, opciones de negocio (`OpcionesDominio`) | **ninguna** |
 | **Infrastructure** | `HistorialContext` (DbContext), configuraciones de EF, `PartidoRepository`, migraciones | `Microsoft.EntityFrameworkCore.SqlServer`, `.Design` |
 | **Api** | Controllers, DTOs de request/response, mapeo DTO↔entidad, política CORS, registro de DI, `/api/health`, middleware de errores | `Microsoft.AspNetCore.*`, `EntityFrameworkCore.Design` (sólo para `dotnet ef`) |
 
@@ -89,6 +90,25 @@ El resultado (V/E/D) **no se persiste**: se deriva en el dominio a partir de los
 Los `CHECK` duplican reglas que ya viven en el dominio. Es intencional: el dominio las
 aplica y explica, la base las garantiza.
 
+### `Equipos`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `Id` | `INT IDENTITY` | PK |
+| `Nombre` | `NVARCHAR(80) NOT NULL` | índice **único** `UX_Equipos_Nombre` |
+| `Activo` | `BIT NOT NULL` | `DEFAULT 1`; un club que baja se desactiva, no se borra |
+
+Dato de referencia, no dato del hincha: puebla el selector de rival para que dos partidos
+contra el mismo club no queden escritos distinto. Los 30 clubes de Primera se cargan con
+`HasData` **dentro de la migración**, así la base se reconstruye de cero con los equipos
+adentro y no queda un script suelto que alguien tenga que acordarse de correr (NFR5).
+
+`Partidos.Rival` sigue siendo texto y **no** una FK a esta tabla. Es deliberado: un
+historial viejo puede tener rivales que hoy no están en Primera, y perderlos porque el
+club descendió sería absurdo. La tabla ordena lo que se carga de acá en adelante; no
+gobierna lo que ya pasó. El frontend, al editar un partido cuyo rival no está en la
+lista, le agrega su propia opción para no perderlo.
+
 **Esquema versionado con migraciones de EF Core** (`dotnet ef migrations add` /
 `dotnet ef database update`). Ningún cambio manual sobre la base.
 
@@ -116,6 +136,7 @@ Base: `http://localhost:5080/api`. JSON en `camelCase`, fechas `YYYY-MM-DD`.
 | `GET` | `/estadisticas/rachas` | Racha actual e histórica: invicto, sin ganar, sin recibir goles |
 | `GET` | `/estadisticas/rivales` | Talismán, maldición y tabla de rivales sobre el umbral |
 | `GET` | `/estadisticas/desgloses` | Récord por condición, por torneo y por temporada |
+| `GET` | `/equipos` | Clubes de Primera en actividad, alfabético, sin el equipo propio |
 
 Errores: `ReglaDeNegocioException` → 400 con `{ "error": "...", "regla": "..." }`,
 resuelto por un único middleware. Los 500 devuelven un mensaje genérico y loguean el detalle.
@@ -216,7 +237,7 @@ ni a dónde van.
    El dominio nunca ve un tipo que exista por razones de transporte HTTP.
 
    *Excepción explícita para las estadísticas:* los resultados de las calculadoras
-   (`Record`, `ResumenModalidad`, `ResumenRachas`, `ResumenRivales`) se serializan
+   (`Record`, `ResumenModalidad`, `ResumenRachas`, `ResumenRivales`, `ResumenDesgloses`) se serializan
    directamente. Son `record` inmutables de sólo lectura, sin dependencias de EF ni de
    ASP.NET, y duplicarlos en DTOs idénticos sería ceremonia pura en una app que quiere
    mantenerse chica. La regla que importa —que el dominio no dependa del transporte—

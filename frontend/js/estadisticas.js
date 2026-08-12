@@ -16,7 +16,20 @@ const NOMBRE_RACHA = {
   sinRecibirGoles: "Sin recibir goles"
 };
 
+/* El backend manda el mes de corte como número; el chip lo muestra con nombre. */
+const NOMBRE_MES = [
+  "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+];
+
 const SIN_DATO = "—";
+
+/* Cuántos partidos entran en la tira de forma reciente. */
+const MAX_FORMA = 20;
+
+/* Las efectividades siempre se grafican sobre 100: escalarlas al máximo
+   observado haría que la peor modalidad se vea llena. */
+const ESCALA_EFECTIVIDAD = 100;
 
 function texto(id, valor) {
   document.getElementById(id).textContent = valor;
@@ -71,11 +84,46 @@ function pintarGlobal(r) {
         <span class="valor">${valor}</span>
       </div>`)
     .join("");
+
+  document.getElementById("reparto-global").innerHTML = VIZ.reparto(r);
+}
+
+/**
+ * Los últimos partidos. Se invierten para leerlos como se leen las rachas:
+ * de izquierda a derecha, del más viejo al más nuevo.
+ */
+function pintarForma(partidos) {
+  const aviso = document.getElementById("sin-forma");
+  const ultimos = partidos.slice(0, MAX_FORMA).reverse();
+
+  document.getElementById("forma-reciente").innerHTML = VIZ.forma(ultimos);
+  aviso.hidden = ultimos.length > 0;
+  if (ultimos.length === 0) aviso.textContent = "Todavía no cargaste ningún partido.";
+}
+
+/** Una fila por grupo, con la efectividad sobre una escala fija de 0 a 100. */
+function filaDeEfectividad(etiqueta, record) {
+  return {
+    etiqueta,
+    valor: record.efectividad,
+    texto: efectividad(record),
+    vacio: record.partidosJugados === 0,
+    detalle: record.partidosJugados === 0
+      ? `${etiqueta}: sin partidos`
+      : `${etiqueta}: ${record.partidosJugados} PJ · ` +
+        `${record.ganados}-${record.empatados}-${record.perdidos} · ${record.efectividad}% de efectividad`
+  };
 }
 
 /* ---------- modalidad y veredicto ---------- */
 
 function pintarModalidad(resumen) {
+  document.getElementById("viz-modalidad").innerHTML = VIZ.barras(
+    resumen.porModalidad.map((m) =>
+      filaDeEfectividad(NOMBRE_MODALIDAD[m.modalidad] ?? m.modalidad, m.record)),
+    ESCALA_EFECTIVIDAD
+  );
+
   document.querySelector("#tabla-modalidad tbody").innerHTML = resumen.porModalidad
     .map((m) => `
       <tr class="${m.record.partidosJugados === 0 ? "apagada" : ""}">
@@ -152,6 +200,11 @@ function pintarRivales(resumen) {
     tarjetaDeRival("Talismán", "talisman", resumen.talisman) +
     tarjetaDeRival("Maldición", "maldicion", resumen.maldicion);
 
+  document.getElementById("viz-rivales").innerHTML = VIZ.barras(
+    resumen.ranking.map((r) => filaDeEfectividad(r.rival, r.record)),
+    ESCALA_EFECTIVIDAD
+  );
+
   const tabla = document.getElementById("tabla-rivales");
   const aviso = document.getElementById("sin-rivales");
 
@@ -170,24 +223,98 @@ function pintarRivales(resumen) {
     .join("");
 }
 
+/* ---------- desgloses ---------- */
+
+/**
+ * Un corte que no tiene ninguna fila no es un error: es un historial vacío.
+ * Se esconde la tabla y se explica, igual que con los rivales.
+ */
+function pintarCorte(idTabla, idAviso, filas, mensajeVacio) {
+  const tabla = document.getElementById(idTabla);
+  const aviso = document.getElementById(idAviso);
+
+  if (filas.length === 0) {
+    tabla.hidden = true;
+    aviso.hidden = false;
+    aviso.textContent = mensajeVacio;
+    return;
+  }
+
+  tabla.hidden = false;
+  aviso.hidden = true;
+  tabla.querySelector("tbody").innerHTML = filas.join("");
+}
+
+function pintarDesgloses(resumen) {
+  texto("corte-temporada", `temporada desde ${NOMBRE_MES[resumen.mesDeCorteAplicado]}`);
+
+  document.getElementById("viz-condicion").innerHTML = VIZ.barras(
+    resumen.porCondicion.map((c) => filaDeEfectividad(c.condicion, c.record)),
+    ESCALA_EFECTIVIDAD
+  );
+
+  document.getElementById("viz-torneo").innerHTML = VIZ.barras(
+    resumen.porTorneo.map((t) => filaDeEfectividad(t.torneo, t.record)),
+    ESCALA_EFECTIVIDAD
+  );
+
+  document.getElementById("viz-temporada").innerHTML = VIZ.barras(
+    resumen.porTemporada.map((t) => filaDeEfectividad(t.temporada, t.record)),
+    ESCALA_EFECTIVIDAD
+  );
+
+  // Local y Visitante vienen siempre, aunque estén en cero: no se esconde ninguno.
+  document.querySelector("#tabla-condicion tbody").innerHTML = resumen.porCondicion
+    .map((c) => `
+      <tr class="${c.record.partidosJugados === 0 ? "apagada" : ""}">
+        <td>${c.condicion}</td>
+        ${celdasDeRecord(c.record)}
+      </tr>`)
+    .join("");
+
+  pintarCorte(
+    "tabla-torneo",
+    "sin-torneos",
+    resumen.porTorneo.map(
+      (t) => `<tr><td class="clave">${escapar(t.torneo)}</td>${celdasDeRecord(t.record)}</tr>`
+    ),
+    "Todavía no hay partidos cargados, así que no hay torneos para desglosar."
+  );
+
+  pintarCorte(
+    "tabla-temporada",
+    "sin-temporadas",
+    resumen.porTemporada.map(
+      (t) => `<tr><td class="clave">${escapar(t.temporada)}</td>${celdasDeRecord(t.record)}</tr>`
+    ),
+    "Todavía no hay partidos cargados, así que no hay temporadas para desglosar."
+  );
+}
+
 /* ---------- arranque ---------- */
 
 async function cargarEstadisticas() {
   const aviso = document.getElementById("error-estadisticas");
 
   try {
-    const [global, modalidad, rachas, rivales] = await Promise.all([
+    // Los partidos se piden para la tira de forma: se usa el resultado que ya
+    // resolvió el backend, no se deduce de los goles acá.
+    const [global, modalidad, rachas, rivales, desgloses, partidos] = await Promise.all([
       API.estadisticasGlobal(),
       API.estadisticasModalidad(),
       API.estadisticasRachas(),
-      API.estadisticasRivales()
+      API.estadisticasRivales(),
+      API.estadisticasDesgloses(),
+      API.listarPartidos()
     ]);
 
     aviso.hidden = true;
     pintarGlobal(global);
+    pintarForma(partidos);
     pintarModalidad(modalidad);
     pintarRachas(rachas);
     pintarRivales(rivales);
+    pintarDesgloses(desgloses);
   } catch (error) {
     aviso.hidden = false;
     aviso.textContent = error.message;

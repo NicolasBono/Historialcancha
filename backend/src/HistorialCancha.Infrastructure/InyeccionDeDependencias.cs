@@ -28,6 +28,7 @@ public static class InyeccionDeDependencias
 
         servicios.AddScoped<IChequeoBaseDeDatos, ChequeoBaseDeDatos>();
         servicios.AddScoped<IPartidoRepository, PartidoRepository>();
+        servicios.AddScoped<IEquipoRepository, EquipoRepository>();
 
         return servicios;
     }
