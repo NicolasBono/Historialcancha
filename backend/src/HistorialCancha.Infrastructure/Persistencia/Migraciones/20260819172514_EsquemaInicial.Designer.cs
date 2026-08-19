@@ -3,16 +3,16 @@ using System;
 using HistorialCancha.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace HistorialCancha.Infrastructure.Persistencia.Migraciones
 {
     [DbContext(typeof(HistorialContext))]
-    [Migration("20260806020851_EsquemaInicial")]
+    [Migration("20260819172514_EsquemaInicial")]
     partial class EsquemaInicial
     {
         /// <inheritdoc />
@@ -20,49 +20,49 @@ namespace HistorialCancha.Infrastructure.Persistencia.Migraciones
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.18")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "9.0.19")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("HistorialCancha.Domain.Entidades.Partido", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<byte>("Condicion")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("CreadoEn")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Estadio")
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<DateOnly>("Fecha")
                         .HasColumnType("date");
 
                     b.Property<int>("GolesAFavor")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("GolesEnContra")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Rival")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("Torneo")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("Id");
 
@@ -75,40 +75,40 @@ namespace HistorialCancha.Infrastructure.Persistencia.Migraciones
 
                     b.ToTable("Partidos", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Partidos_Condicion", "[Condicion] IN (0, 1)");
+                            t.HasCheckConstraint("CK_Partidos_Condicion", "\"Condicion\" IN (0, 1)");
 
-                            t.HasCheckConstraint("CK_Partidos_GolesAFavor", "[GolesAFavor] >= 0");
+                            t.HasCheckConstraint("CK_Partidos_GolesAFavor", "\"GolesAFavor\" >= 0");
 
-                            t.HasCheckConstraint("CK_Partidos_GolesEnContra", "[GolesEnContra] >= 0");
+                            t.HasCheckConstraint("CK_Partidos_GolesEnContra", "\"GolesEnContra\" >= 0");
                         });
                 });
 
             modelBuilder.Entity("HistorialCancha.Domain.Entidades.Vivencia", b =>
                 {
                     b.Property<int>("PartidoId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ConQuien")
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<byte>("Modalidad")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<byte?>("Nota")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Sector")
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
+                        .HasColumnType("character varying(80)");
 
                     b.HasKey("PartidoId");
 
                     b.ToTable("Vivencias", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Vivencias_Modalidad", "[Modalidad] BETWEEN 0 AND 4");
+                            t.HasCheckConstraint("CK_Vivencias_Modalidad", "\"Modalidad\" BETWEEN 0 AND 4");
 
-                            t.HasCheckConstraint("CK_Vivencias_Nota", "[Nota] IS NULL OR [Nota] BETWEEN 1 AND 10");
+                            t.HasCheckConstraint("CK_Vivencias_Nota", "\"Nota\" IS NULL OR \"Nota\" BETWEEN 1 AND 10");
                         });
                 });
 

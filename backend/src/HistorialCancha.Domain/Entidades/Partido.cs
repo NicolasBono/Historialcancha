@@ -7,6 +7,10 @@ namespace HistorialCancha.Domain.Entidades;
 public class Partido
 {
     public int Id { get; set; }
+
+    /// <summary>Dueño del partido. Cada hincha sólo ve y toca lo suyo.</summary>
+    public int UsuarioId { get; set; }
+
     public DateOnly Fecha { get; set; }
     public string Rival { get; set; } = string.Empty;
     public string Torneo { get; set; } = string.Empty;

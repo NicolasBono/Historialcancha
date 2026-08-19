@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingresar · Mi historial de hincha</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="barra">
+    <div class="marca">
+      <span class="pelota" aria-hidden="true">⚽</span>
+      <h1>Mi historial de hincha</h1>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="tarjeta">
+      <div class="auth-tabs">
+        <button type="button" id="tab-login" class="primario">Ingresar</button>
+        <button type="button" id="tab-registro" class="secundario">Crear cuenta</button>
+      </div>
+
+      <p id="error-auth" class="error" role="alert" hidden></p>
+
+      <form id="form-login" novalidate>
+        <div class="grilla">
+          <label><span class="campo">DNI</span>
+            <input type="text" id="login-dni" inputmode="numeric" maxlength="8" autocomplete="username" required>
+          </label>
+          <label><span class="campo">Contraseña</span>
+            <input type="password" id="login-contrasena" autocomplete="current-password" required>
+          </label>
+        </div>
+        <div class="botones">
+          <button type="submit" class="primario">Ingresar</button>
+        </div>
+      </form>
+
+      <form id="form-registro" novalidate hidden>
+        <div class="grilla">
+          <label><span class="campo">Nombre</span>
+            <input type="text" id="reg-nombre" maxlength="80" autocomplete="given-name" required>
+          </label>
+          <label><span class="campo">Apellido</span>
+            <input type="text" id="reg-apellido" maxlength="80" autocomplete="family-name" required>
+          </label>
+          <label><span class="campo">DNI</span>
+            <input type="text" id="reg-dni" inputmode="numeric" maxlength="8" autocomplete="username" required>
+          </label>
+          <label><span class="campo">Contraseña <em class="opcional">mín. 8</em></span>
+            <input type="password" id="reg-contrasena" minlength="8" autocomplete="new-password" required>
+          </label>
+        </div>
+        <div class="botones">
+          <button type="submit" class="primario">Crear cuenta e ingresar</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

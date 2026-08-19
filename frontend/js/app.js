@@ -11,6 +11,15 @@ function pintarIdentidad() {
   entorno.dataset.entorno = window.APP_CONFIG.entorno.toLowerCase();
 }
 
+function pintarUsuario() {
+  const usuario = Auth.usuario();
+  const chip = document.getElementById("usuario");
+  if (chip && usuario) chip.textContent = usuario.nombre + " " + usuario.apellido;
+
+  const salir = document.getElementById("btn-salir");
+  if (salir) salir.addEventListener("click", () => Auth.cerrarSesion());
+}
+
 function pintarEstado(estado, texto) {
   const indicador = document.getElementById("estado-backend");
   indicador.dataset.estado = estado;
@@ -57,7 +66,12 @@ async function chequearBackend() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Guarda de página: sin sesión no se muestra nada, se va al login.
+  Auth.exigirSesion();
+  if (!Auth.haySesion()) return;
+
   pintarIdentidad();
+  pintarUsuario();
   chequearBackend();
   setInterval(chequearBackend, INTERVALO_CHEQUEO_MS);
 });
