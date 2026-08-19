@@ -1,6 +1,6 @@
 # PRD — Mi historial de hincha (Fase 1)
 
-Alcance: aplicación corriendo en local (frontend + backend + MSSQL).
+Alcance: aplicación corriendo en local (frontend + backend + PostgreSQL en contenedor).
 Todo requerimiento de testing, CI/CD, infraestructura o entornos no locales
 queda fuera de este documento por definición del alcance.
 
@@ -58,6 +58,22 @@ queda fuera de este documento por definición del alcance.
   y el entorno en que está corriendo.
 - **FR26** — El frontend indica visualmente si el backend está disponible, consultando el health check.
 
+### Cuentas y sesión (multiusuario)
+
+- **FR27** — Cualquier persona puede registrarse como hincha con nombre, apellido, DNI y
+  contraseña. El DNI es único e identifica al usuario para entrar; la contraseña se guarda
+  siempre hasheada, nunca en claro.
+- **FR28** — El usuario inicia sesión con DNI y contraseña y obtiene un token de sesión.
+  Ante DNI inexistente o contraseña incorrecta, el sistema responde con un mensaje genérico
+  que no revela cuál de los dos falló.
+- **FR29** — Todos los datos de partidos y estadísticas quedan acotados al usuario dueño de
+  la sesión: cada hincha ve, crea, edita y borra sólo sus propios partidos. Ningún usuario
+  puede acceder a los datos de otro, ni siquiera conociendo el id.
+- **FR30** — La regla "un partido por día" (FR10) es por usuario: dos hinchas distintos
+  pueden tener un partido en la misma fecha; el mismo hincha, no.
+- **FR31** — El frontend exige sesión para el historial y las estadísticas; sin token válido
+  redirige al login. El usuario puede cerrar sesión.
+
 ## Requerimientos no funcionales
 
 - **NFR1** — El frontend se construye sólo con HTML, CSS y JavaScript nativo: sin frameworks,
@@ -66,7 +82,7 @@ queda fuera de este documento por definición del alcance.
   el backend no sirve archivos del frontend ni tiene contenido en `wwwroot`.
 - **NFR3** — El backend habilita CORS mediante una política nombrada, con la lista de orígenes
   permitidos tomada de configuración; no se usa el comodín `*`.
-- **NFR4** — La persistencia es MSSQL real: no se admiten mocks, archivos JSON, ni estado en memoria.
+- **NFR4** — La persistencia es PostgreSQL real: no se admiten mocks, archivos JSON, ni estado en memoria.
   Los datos sobreviven al reinicio de los servicios.
 - **NFR5** — El esquema de la base se crea y evoluciona mediante migraciones versionadas
   en el repositorio; no se aplica ningún cambio manual sobre la base.
@@ -91,3 +107,9 @@ queda fuera de este documento por definición del alcance.
 - **NFR15** — La solución de backend se mantiene en tres proyectos (dominio, infraestructura, API);
   no se agregan capas ni proyectos adicionales en esta fase.
 - **NFR16** — La interfaz está íntegramente en español y usa codificación UTF-8.
+- **NFR17** — Las contraseñas se almacenan hasheadas con un algoritmo con salt (PBKDF2 vía
+  el hasher del framework); nunca en texto plano ni con hash reversible. El secreto que
+  firma los tokens JWT sale de configuración/variable de entorno, nunca del código ni del
+  repositorio, igual que la cadena de conexión (NFR6, NFR7).
+- **NFR18** — El aislamiento entre usuarios se garantiza en la capa de acceso a datos (el
+  repositorio filtra por el id del usuario tomado del token), no sólo en el frontend.

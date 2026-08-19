@@ -49,6 +49,24 @@ body {
 .entorno[data-entorno="development"] { color: var(--alerta); border-color: var(--alerta); }
 .entorno[data-entorno="production"]  { color: var(--acento); border-color: var(--acento); }
 
+.usuario { color: var(--texto); border-color: var(--acento); }
+
+.salir {
+  background: transparent;
+  border: 1px solid var(--borde);
+  color: var(--tenue);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+}
+.salir:hover { color: var(--texto); border-color: var(--tenue); }
+
+/* --- Login / registro --- */
+.auth-main { max-width: 420px; }
+
+.auth-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
+.auth-tabs button { flex: 1; }
+
 .estado { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--tenue); }
 .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--tenue); }
 

@@ -10,8 +10,8 @@ public class VivenciaConfiguration : IEntityTypeConfiguration<Vivencia>
     {
         builder.ToTable("Vivencias", t =>
         {
-            t.HasCheckConstraint("CK_Vivencias_Modalidad", "[Modalidad] BETWEEN 0 AND 4");
-            t.HasCheckConstraint("CK_Vivencias_Nota", "[Nota] IS NULL OR [Nota] BETWEEN 1 AND 10");
+            t.HasCheckConstraint("CK_Vivencias_Modalidad", "\"Modalidad\" BETWEEN 0 AND 4");
+            t.HasCheckConstraint("CK_Vivencias_Nota", "\"Nota\" IS NULL OR \"Nota\" BETWEEN 1 AND 10");
         });
 
         // La PK es también la FK: relación 1:1 estricta.
@@ -21,12 +21,12 @@ public class VivenciaConfiguration : IEntityTypeConfiguration<Vivencia>
 
         builder.Property(v => v.Modalidad)
             .HasConversion<byte>()
-            .HasColumnType("tinyint")
+            .HasColumnType("smallint")
             .IsRequired();
 
         builder.Property(v => v.Sector).HasMaxLength(80);
         builder.Property(v => v.ConQuien).HasMaxLength(120);
-        builder.Property(v => v.Nota).HasColumnType("tinyint");
+        builder.Property(v => v.Nota).HasColumnType("smallint");
 
         builder.HasOne(v => v.Partido)
             .WithOne(p => p.Vivencia)

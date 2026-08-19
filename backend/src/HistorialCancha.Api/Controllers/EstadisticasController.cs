@@ -11,7 +11,7 @@ namespace HistorialCancha.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/estadisticas")]
-public class EstadisticasController : ControllerBase
+public class EstadisticasController : ControladorAutenticado
 {
     private readonly IPartidoRepository _repositorio;
     private readonly OpcionesDominio _opciones;
@@ -26,7 +26,7 @@ public class EstadisticasController : ControllerBase
     [HttpGet("global")]
     public async Task<IActionResult> Global(CancellationToken ct)
     {
-        var partidos = await _repositorio.ObtenerTodosAsync(ct);
+        var partidos = await _repositorio.ObtenerTodosAsync(UsuarioId, ct);
         return Ok(CalculadoraRecord.Calcular(partidos));
     }
 
@@ -34,7 +34,7 @@ public class EstadisticasController : ControllerBase
     [HttpGet("modalidad")]
     public async Task<IActionResult> PorModalidad(CancellationToken ct)
     {
-        var partidos = await _repositorio.ObtenerTodosAsync(ct);
+        var partidos = await _repositorio.ObtenerTodosAsync(UsuarioId, ct);
         return Ok(CalculadoraModalidad.Calcular(partidos, _opciones));
     }
 
@@ -42,7 +42,7 @@ public class EstadisticasController : ControllerBase
     [HttpGet("rachas")]
     public async Task<IActionResult> Rachas(CancellationToken ct)
     {
-        var partidos = await _repositorio.ObtenerTodosAsync(ct);
+        var partidos = await _repositorio.ObtenerTodosAsync(UsuarioId, ct);
         return Ok(CalculadoraRachas.Calcular(partidos));
     }
 
@@ -50,7 +50,7 @@ public class EstadisticasController : ControllerBase
     [HttpGet("rivales")]
     public async Task<IActionResult> Rivales(CancellationToken ct)
     {
-        var partidos = await _repositorio.ObtenerTodosAsync(ct);
+        var partidos = await _repositorio.ObtenerTodosAsync(UsuarioId, ct);
         return Ok(RankingRivales.Resolver(partidos, _opciones));
     }
 }

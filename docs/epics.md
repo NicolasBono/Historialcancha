@@ -8,7 +8,7 @@ completa y andando de punta a punta, no se arranca con features.
 ## Épica 1 — Esqueleto de los tres servicios
 
 **Objetivo:** frontend, backend y base de datos levantados en local, hablando entre sí,
-con health check, conexión real a MSSQL y la pantalla mostrando versión y entorno.
+con health check, conexión real a PostgreSQL y la pantalla mostrando versión y entorno.
 
 ### HU 1.1 — Backend con health check
 
@@ -25,18 +25,22 @@ que el servicio arranca y responde.*
 - **Dado** el proyecto de API, **cuando** reviso su contenido, **entonces** no existe carpeta
   `wwwroot` ni se sirve ningún archivo estático.
 
-### HU 1.2 — Base de datos MSSQL conectada
+### HU 1.2 — Base de datos PostgreSQL conectada
 
-*Como desarrollador, quiero el esquema creado en SQL Server y el backend conectado, para
+*Como desarrollador, quiero el esquema creado en PostgreSQL y el backend conectado, para
 tener persistencia real desde el primer día.*
 
-- **Dado** SQL Server local en `.\SQLEXPRESS` con el usuario `admin`, **cuando** ejecuto
-  `dotnet ef database update`, **entonces** se crea la base `HistorialCancha` con las tablas
-  `Partidos` y `Vivencias`, sus restricciones y el índice único por fecha.
+- **Dado** el contenedor de PostgreSQL levantado (base y usuario creados por la imagen a
+  partir de `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD`), **cuando** arranco el
+  backend, **entonces** la app aplica las migraciones al inicio (`Database.Migrate()`) y crea
+  las tablas `Partidos` y `Vivencias`, sus restricciones y el índice único por fecha.
 - **Dado** el backend corriendo con la connection string configurada, **cuando** hago
   `GET /api/health`, **entonces** el campo `baseDeDatos` devuelve `ok`.
-- **Dado** SQL Server detenido, **cuando** hago `GET /api/health`, **entonces** el endpoint
-  responde igual (no se cae) e informa `baseDeDatos: "error"`.
+- **Dado** el contenedor de PostgreSQL detenido **después** de que el backend arrancó,
+  **cuando** hago `GET /api/health`, **entonces** el endpoint responde igual (no se cae) e
+  informa `baseDeDatos: "error"`.
+- **Dado** que la base no está disponible **al arrancar**, **cuando** levanto el backend,
+  **entonces** falla el arranque a propósito: sin esquema no hay app que valga.
 - **Dado** el repositorio, **cuando** busco la connection string, **entonces** no aparece en
   ningún archivo versionado: sólo en `appsettings.Development.example.json` con valores de ejemplo.
 
@@ -63,8 +67,9 @@ backend está vivo.*
 *Como desarrollador que vuelve al proyecto en dos meses, quiero instrucciones que funcionen
 sin recordar nada.*
 
-- **Dado** el README, **cuando** lo sigo desde cero, **entonces** puedo levantar SQL Server,
-  crear el esquema, arrancar el backend y servir el frontend, en ese orden y sin pasos implícitos.
+- **Dado** el README, **cuando** lo sigo desde cero, **entonces** puedo levantar el contenedor
+  de PostgreSQL, arrancar el backend (que crea el esquema solo) y servir el frontend, en ese
+  orden y sin pasos implícitos.
 - **Dado** el README, **cuando** llego a la sección de configuración, **entonces** encuentro
   cada variable, qué hace y su valor de ejemplo para local.
 
@@ -80,7 +85,7 @@ aplicadas desde el dominio.
 *Como hincha, quiero registrar un partido y cómo lo viví, para empezar a construir mi historial.*
 
 - **Dado** el formulario de alta, **cuando** completo fecha, rival, torneo, condición, goles
-  a favor, goles en contra y modalidad, **entonces** el partido se guarda en MSSQL y aparece
+  a favor, goles en contra y modalidad, **entonces** el partido se guarda en PostgreSQL y aparece
   en el listado sin recargar la página.
 - **Dado** el formulario, **cuando** además cargo sector, con quién fui y una nota del 1 al 10,
   **entonces** esos datos quedan persistidos en la vivencia.
@@ -213,3 +218,50 @@ miro por otro medio.* **(corazón de la app)**
   **entonces** la agrupación cambia sin tocar el código.
 - **Dado** el desglose por temporada, **cuando** lo veo, **entonces** las temporadas aparecen
   de la más reciente a la más antigua, cada una con su récord y efectividad.
+
+---
+
+## Épica 5 — Cuentas de hincha y datos por usuario
+
+**Objetivo:** que cada hincha tenga su cuenta y vea sólo su propio historial. El equipo que
+sigue la app (`App:MiEquipo`) es el mismo para todos; los partidos son de cada uno.
+
+### HU 5.1 — Registro de un hincha
+
+*Como hincha, quiero crear mi cuenta, para tener mi propio historial separado del de otros.*
+
+- **Dado** el formulario de registro, **cuando** ingreso nombre, apellido, DNI y una
+  contraseña de al menos 8 caracteres, **entonces** se crea mi cuenta y entro directo a mi
+  historial (auto-login con token).
+- **Dado** un DNI que no es un número de 7 u 8 dígitos, **cuando** intento registrarme,
+  **entonces** se rechaza indicando el formato válido.
+- **Dado** un DNI que ya tiene cuenta, **cuando** intento registrarme, **entonces** se
+  rechaza indicando que ya existe un usuario con ese DNI.
+- **Dado** un registro exitoso, **cuando** miro la base, **entonces** la contraseña está
+  hasheada, no en texto plano.
+
+### HU 5.2 — Login y sesión
+
+*Como hincha, quiero ingresar con mi DNI y contraseña, para acceder a mis datos.*
+
+- **Dado** un DNI y contraseña correctos, **cuando** ingreso, **entonces** obtengo un token
+  y entro a mi historial.
+- **Dado** un DNI inexistente o una contraseña incorrecta, **cuando** intento ingresar,
+  **entonces** recibo 401 con un mensaje genérico que no revela cuál de los dos falló.
+- **Dado** que estoy logueado, **cuando** cierro sesión, **entonces** vuelvo al login y mi
+  token deja de usarse.
+- **Dado** el historial o las estadísticas, **cuando** entro sin sesión o con el token
+  vencido, **entonces** el frontend me manda al login.
+
+### HU 5.3 — Aislamiento de datos entre usuarios
+
+*Como hincha, quiero que nadie más vea ni toque mis partidos.*
+
+- **Dado** dos usuarios con partidos, **cuando** cada uno abre su historial o sus
+  estadísticas, **entonces** ve únicamente los suyos.
+- **Dado** el id de un partido de otro usuario, **cuando** lo pido, edito o borro con mi
+  token, **entonces** recibo 404, como si no existiera.
+- **Dado** dos usuarios distintos, **cuando** cada uno carga un partido en la misma fecha,
+  **entonces** ambos se guardan: la regla "un partido por día" es por usuario.
+- **Dado** cualquier endpoint de partidos o estadísticas, **cuando** lo llamo sin token,
+  **entonces** recibo 401.

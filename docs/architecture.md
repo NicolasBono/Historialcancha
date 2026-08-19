@@ -3,9 +3,9 @@
 Tres servicios independientes corriendo en la máquina local:
 
 ```
-[ Frontend estático ]  --HTTP/JSON-->  [ Backend Web API ]  --TDS-->  [ SQL Server ]
-  http://localhost:5500                 http://localhost:5080          .\SQLEXPRESS
-  HTML + CSS + JS puro                  .NET Core                      HistorialCancha
+[ Frontend estático ]  --HTTP/JSON-->  [ Backend Web API ]  --SQL-->  [ PostgreSQL 16 ]
+  http://localhost:5500                 http://localhost:5080         contenedor Docker
+  HTML + CSS + JS puro                  .NET Core                      historialcancha
 ```
 
 Orígenes distintos por diseño: el frontend **no** vive dentro del backend, no hay `wwwroot`
@@ -17,21 +17,24 @@ y la API no sirve archivos estáticos. Por eso el backend necesita CORS.
 Historialcancha/
 ├── docs/
 ├── frontend/                       # servicio 1 — sitio estático
+│   ├── login.html                  # registro + login (única pantalla sin sesión)
 │   ├── index.html                  # listado de partidos + alta/edición
 │   ├── estadisticas.html           # récord, modalidades, rachas, rivales
 │   ├── css/estilos.css
 │   ├── js/
 │   │   ├── config.js               # generado desde config.example.js — NO se versiona
-│   │   ├── api.js                  # único punto que conoce la URL del backend
+│   │   ├── auth.js                  # sesión: guarda el token y el usuario, guarda de página
+│   │   ├── api.js                  # único punto que conoce la URL del backend; adjunta el token
+│   │   ├── login.js                # controlador de login.html
 │   │   ├── partidos.js
 │   │   ├── estadisticas.js
-│   │   └── app.js                  # badge de versión/entorno + estado del backend
+│   │   └── app.js                  # badge de versión/entorno + usuario + estado del backend
 │   └── config.example.js
 ├── backend/                        # servicio 2 — solución .NET
 │   ├── HistorialCancha.sln
 │   ├── src/
 │   │   ├── HistorialCancha.Domain/           # lógica pura, cero dependencias externas
-│   │   ├── HistorialCancha.Infrastructure/   # EF Core + SQL Server + migraciones
+│   │   ├── HistorialCancha.Infrastructure/   # EF Core + PostgreSQL (Npgsql) + migraciones
 │   │   └── HistorialCancha.Api/              # controllers, DTOs, CORS, DI, health
 │   └── appsettings.Development.example.json
 └── README.md
@@ -48,31 +51,45 @@ HistorialCancha.Api  ──►  HistorialCancha.Infrastructure  ──►  Histo
 
 | Proyecto | Contiene | Referencias NuGet |
 |---|---|---|
-| **Domain** | Entidades (`Partido`, `Vivencia`), enums (`Modalidad`, `Condicion`, `Resultado`), servicios de dominio (`ValidadorPartido`, y en `Estadisticas/`: `CalculadoraRecord`, `CalculadoraModalidad`, `CalculadoraRachas`, `RankingRivales`, `CalculadoraTemporada`), interfaces de repositorio (`IPartidoRepository`), excepción `ReglaDeNegocioException`, opciones de negocio (`OpcionesDominio`) | **ninguna** |
-| **Infrastructure** | `HistorialContext` (DbContext), configuraciones de EF, `PartidoRepository`, migraciones | `Microsoft.EntityFrameworkCore.SqlServer`, `.Design` |
-| **Api** | Controllers, DTOs de request/response, mapeo DTO↔entidad, política CORS, registro de DI, `/api/health`, middleware de errores | `Microsoft.AspNetCore.*`, `EntityFrameworkCore.Design` (sólo para `dotnet ef`) |
+| **Domain** | Entidades (`Partido`, `Vivencia`, `Usuario`), enums (`Modalidad`, `Condicion`, `Resultado`), servicios de dominio (`ValidadorPartido`, `ValidadorUsuario`, y en `Estadisticas/`: `CalculadoraRecord`, `CalculadoraModalidad`, `CalculadoraRachas`, `RankingRivales`, `CalculadoraTemporada`), interfaces de repositorio (`IPartidoRepository`, `IUsuarioRepository`), excepción `ReglaDeNegocioException`, opciones de negocio (`OpcionesDominio`) | **ninguna** |
+| **Infrastructure** | `HistorialContext` (DbContext), configuraciones de EF, `PartidoRepository`, `UsuarioRepository`, hasheo de contraseñas y generación de JWT, migraciones | `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.Extensions.Identity.Core`, `System.IdentityModel.Tokens.Jwt` |
+| **Api** | Controllers, DTOs de request/response, mapeo DTO↔entidad, política CORS, registro de DI, `/api/health`, `/api/auth`, middleware de errores y de autenticación | `Microsoft.AspNetCore.*`, `Microsoft.AspNetCore.Authentication.JwtBearer`, `EntityFrameworkCore.Design` (sólo para `dotnet ef`) |
 
 `Domain` no compila contra EF, ni contra ASP.NET, ni contra ningún DTO. Es un
 class library sin `PackageReference`: esa ausencia es la garantía verificable.
 
-## Modelo de datos (MSSQL)
+## Modelo de datos (PostgreSQL)
 
-Base `HistorialCancha`. Dos tablas en relación 1:1 — el partido es el hecho objetivo,
-la vivencia es cómo lo vivió el hincha.
+Base `historialcancha`. Tres tablas: `Usuarios`, y el par `Partidos`/`Vivencias` en
+relación 1:1 — el partido es el hecho objetivo, la vivencia es cómo lo vivió el hincha.
+Cada partido pertenece a un usuario. Los identificadores conservan el case (`Partidos`,
+`GolesAFavor`): EF los genera entre comillas dobles, así que en SQL manual también van
+entrecomillados.
+
+### `Usuarios`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `Id` | `integer GENERATED BY DEFAULT AS IDENTITY` | PK |
+| `Nombre` | `varchar(80) NOT NULL` | |
+| `Apellido` | `varchar(80) NOT NULL` | |
+| `Dni` | `varchar(8) NOT NULL` | credencial de login, índice **único** `UX_Usuarios_Dni` |
+| `HashContrasena` | `varchar(256) NOT NULL` | hash PBKDF2 con salt (nunca la contraseña en claro) |
 
 ### `Partidos`
 
 | Columna | Tipo | Notas |
 |---|---|---|
-| `Id` | `INT IDENTITY` | PK |
-| `Fecha` | `DATE NOT NULL` | índice **único** → una fecha, un partido (FR10) |
-| `Rival` | `NVARCHAR(80) NOT NULL` | índice no único, para el ranking de rivales |
-| `Torneo` | `NVARCHAR(80) NOT NULL` | |
-| `Condicion` | `TINYINT NOT NULL` | 0 = Local, 1 = Visitante. `CHECK (Condicion IN (0,1))` |
-| `Estadio` | `NVARCHAR(120) NULL` | |
-| `GolesAFavor` | `INT NOT NULL` | `CHECK (GolesAFavor >= 0)` |
-| `GolesEnContra` | `INT NOT NULL` | `CHECK (GolesEnContra >= 0)` |
-| `CreadoEn` | `DATETIME2 NOT NULL` | `DEFAULT SYSUTCDATETIME()` |
+| `Id` | `integer GENERATED BY DEFAULT AS IDENTITY` | PK |
+| `UsuarioId` | `integer NOT NULL` | FK a `Usuarios(Id)` `ON DELETE CASCADE` — dueño del partido |
+| `Fecha` | `date NOT NULL` | índice **único compuesto** `(UsuarioId, Fecha)` → una fecha, un partido, **por usuario** (FR10) |
+| `Rival` | `varchar(80) NOT NULL` | índice no único, para el ranking de rivales |
+| `Torneo` | `varchar(80) NOT NULL` | |
+| `Condicion` | `smallint NOT NULL` | 0 = Local, 1 = Visitante. `CHECK ("Condicion" IN (0,1))` |
+| `Estadio` | `varchar(120) NULL` | |
+| `GolesAFavor` | `integer NOT NULL` | `CHECK ("GolesAFavor" >= 0)` |
+| `GolesEnContra` | `integer NOT NULL` | `CHECK ("GolesEnContra" >= 0)` |
+| `CreadoEn` | `timestamp with time zone NOT NULL` | `DEFAULT now()` |
 
 El resultado (V/E/D) **no se persiste**: se deriva en el dominio a partir de los goles (FR13).
 
@@ -80,33 +97,41 @@ El resultado (V/E/D) **no se persiste**: se deriva en el dominio a partir de los
 
 | Columna | Tipo | Notas |
 |---|---|---|
-| `PartidoId` | `INT` | PK y FK a `Partidos(Id)` `ON DELETE CASCADE` |
-| `Modalidad` | `TINYINT NOT NULL` | 0 EnCancha, 1 TV, 2 Streaming, 3 Radio, 4 NoLoVi. `CHECK (Modalidad BETWEEN 0 AND 4)` |
-| `Sector` | `NVARCHAR(80) NULL` | |
-| `ConQuien` | `NVARCHAR(120) NULL` | |
-| `Nota` | `TINYINT NULL` | `CHECK (Nota BETWEEN 1 AND 10)` |
+| `PartidoId` | `integer` | PK y FK a `Partidos(Id)` `ON DELETE CASCADE` |
+| `Modalidad` | `smallint NOT NULL` | 0 EnCancha, 1 TV, 2 Streaming, 3 Radio, 4 NoLoVi. `CHECK ("Modalidad" BETWEEN 0 AND 4)` |
+| `Sector` | `varchar(80) NULL` | |
+| `ConQuien` | `varchar(120) NULL` | |
+| `Nota` | `smallint NULL` | `CHECK ("Nota" BETWEEN 1 AND 10)` |
 
-Los `CHECK` duplican reglas que ya viven en el dominio. Es intencional: el dominio las
-aplica y explica, la base las garantiza.
+`smallint` es el entero más chico de PostgreSQL (no existe `tinyint`); alcanza de sobra
+para los enums y la nota 1–10. Los `CHECK` duplican reglas que ya viven en el dominio. Es
+intencional: el dominio las aplica y explica, la base las garantiza.
 
-**Esquema versionado con migraciones de EF Core** (`dotnet ef migrations add` /
-`dotnet ef database update`). Ningún cambio manual sobre la base.
+**Esquema versionado con migraciones de EF Core** (`dotnet ef migrations add`). Ningún
+cambio manual sobre la base.
 
-**Creación de la base y del usuario: `db/setup.sql`.** El login de la aplicación no tiene
-permiso para crear bases, así que hay un paso previo de una sola vez, ejecutado con
-autenticación de Windows, que crea `HistorialCancha`, crea el login y lo hace `db_owner`
-de esa base y nada más. Ese script **no crea tablas**: el límite entre los dos es claro
-—`setup.sql` es permisos, las migraciones son esquema—. La contraseña se pasa como
-parámetro de `sqlcmd`, no está en el archivo.
+**El esquema lo aplica la propia app al arrancar** (`Database.Migrate()` en el startup):
+en el contenedor la base nace vacía y nadie corre `dotnet ef` a mano. Si la base no está
+disponible, el backend no arranca a propósito.
+
+**Creación de la base y del usuario: la imagen de PostgreSQL.** No hay script de setup: el
+contenedor `postgres:16` crea la base con `POSTGRES_DB` y el usuario dueño con
+`POSTGRES_USER`/`POSTGRES_PASSWORD` en su primer arranque. La contraseña se pasa como
+variable de entorno, no está versionada.
 
 ## API — endpoints
 
 Base: `http://localhost:5080/api`. JSON en `camelCase`, fechas `YYYY-MM-DD`.
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/health` | Estado del servicio: `status`, `version`, `entorno`, `baseDeDatos` (`ok`/`error`), `miEquipo` |
-| `GET` | `/partidos` | Listado completo, fecha descendente, con resultado y modalidad resueltos |
+Salvo `/health` y `/auth/*`, **todos los endpoints exigen token** (`[Authorize]`) y sólo
+devuelven/tocan los datos del usuario dueño del token. Sin token válido → 401.
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/health` | — | Estado del servicio: `status`, `version`, `entorno`, `baseDeDatos` (`ok`/`error`), `miEquipo` |
+| `POST` | `/auth/registro` | — | Alta de un hincha (`nombre`, `apellido`, `dni`, `contrasena`). 201 + token, o 400 |
+| `POST` | `/auth/login` | — | Login por `dni` + `contrasena`. 200 + token, o 401 con mensaje genérico |
+| `GET` | `/partidos` | token | Listado completo del usuario, fecha descendente, con resultado y modalidad resueltos |
 | `GET` | `/partidos/{id}` | Detalle de un partido con su vivencia |
 | `POST` | `/partidos` | Alta. 201 + `Location`, o 400 con el detalle de la regla incumplida |
 | `PUT` | `/partidos/{id}` | Edición completa (partido + vivencia). 204 / 400 / 404 |
@@ -133,6 +158,33 @@ Política nombrada `FrontendLocal`, registrada en `Program.cs` y aplicada global
 - Sin credenciales: no hay cookies ni sesión.
 - `UseCors` se ubica antes de `MapControllers` para que el preflight `OPTIONS` responda.
 
+## Autenticación y multiusuario
+
+Cada hincha tiene su propio historial: se registra con nombre, apellido, DNI y contraseña,
+y a partir de ahí sólo ve y toca lo suyo. El equipo propio (`App:MiEquipo`) sigue siendo
+**global**: la app sigue a un club y varios hinchas de ese club llevan su historial.
+
+- **Registro/login por DNI.** El DNI es la credencial de entrada (índice único). La
+  contraseña se guarda hasheada con `PasswordHasher` del framework (PBKDF2 + salt por
+  contraseña); nunca en claro. El login responde con un mensaje genérico ante DNI
+  inexistente o clave incorrecta: no revela cuál falló.
+- **Token JWT.** Registro y login devuelven un JWT firmado (HMAC-SHA256). El id del usuario
+  viaja en el claim `sub`/`NameIdentifier`. El secreto de firma sale de `Jwt:Key`
+  (variable de entorno, mínimo 32 caracteres); la app no arranca si falta o es corto.
+- **Aislamiento en el repositorio.** `IPartidoRepository` recibe `usuarioId` en cada método
+  y filtra por él. El id **sale del token**, no de la URL ni del body: un usuario no puede
+  pedir los partidos de otro. Pedir un partido ajeno por id devuelve 404, no 403 (no se
+  filtra siquiera que existe).
+- **Un partido por día es por usuario.** El índice único `(UsuarioId, Fecha)` deja que dos
+  hinchas tengan un partido el mismo día, pero no el mismo hincha dos veces.
+- **La capa de dominio sigue limpia.** `Usuario` es una entidad POCO sin atributos; el
+  hasheo y el JWT viven en Infraestructura, no en el dominio. `ValidadorUsuario` es una
+  función pura (DNI con formato, contraseña con largo mínimo); si el DNI ya existe entra
+  como parámetro, igual que "un partido por día".
+
+El frontend guarda el token en `localStorage`, lo manda en `Authorization: Bearer` en cada
+request, y ante un 401 borra la sesión y vuelve al login (`login.html`).
+
 ## Configuración
 
 Nada hardcodeado, ni siquiera para local (NFR6). Un archivo de ejemplo versionado y
@@ -143,7 +195,7 @@ un archivo real ignorado por Git en cada servicio.
 ```json
 {
   "ConnectionStrings": {
-    "HistorialCancha": "Server=.\\SQLEXPRESS;Database=HistorialCancha;User Id=admin;Password=admin123;TrustServerCertificate=True"
+    "HistorialCancha": "Host=localhost;Database=historialcancha;Username=historial;Password=admin123"
   },
   "App": {
     "Version": "1.0.0",

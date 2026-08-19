@@ -3,6 +3,7 @@ using System;
 using HistorialCancha.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HistorialCancha.Infrastructure.Persistencia.Migraciones
 {
     [DbContext(typeof(HistorialContext))]
-    partial class HistorialContextModelSnapshot : ModelSnapshot
+    [Migration("20260819174315_AutenticacionUsuarios")]
+    partial class AutenticacionUsuarios
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
