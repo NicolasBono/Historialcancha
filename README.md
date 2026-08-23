@@ -127,6 +127,44 @@ versión, el entorno, el estado del backend y el botón de salir.
 
 ---
 
+## Levantarlo con Docker (todo el sistema, un comando)
+
+La alternativa a los cinco pasos de arriba: no hace falta tener .NET, ni PostgreSQL, ni
+Python instalados — sólo Docker.
+
+```bash
+cp .env.example .env        # y editalo: poné una contraseña y un Jwt:Key de 32+ caracteres
+docker compose up -d --build
+```
+
+- Frontend: **http://localhost:3000** (nginx sirve los estáticos y proxea `/api` al backend)
+- Backend directo, para `curl`/Postman: **http://localhost:8080/api/health**
+
+La base **no** publica puerto: sólo la alcanza el backend por la red interna de compose. El
+esquema lo aplican las migraciones al arrancar, así que la primera vez tarda unos segundos
+más.
+
+```bash
+docker compose ps       # esperá a ver db "healthy"
+docker compose logs -f backend
+docker compose down     # apaga y conserva los datos
+docker compose down -v  # apaga y BORRA el volumen: la base vuelve a nacer vacía
+```
+
+> El `.env` no se versiona. Si clonás el repo y no lo creás, el compose corta en el acto
+> avisando qué variable falta.
+
+### Correr las imágenes publicadas, sin compilar
+
+```bash
+docker compose -f docker-compose.registry.yml up -d
+```
+
+Baja las imágenes de `ghcr.io` en vez de construirlas. Sirve para levantar el sistema en
+una máquina que no tiene el código.
+
+---
+
 ## Configuración
 
 Nada está hardcodeado: todo sale de un archivo de configuración o de una variable de entorno.
