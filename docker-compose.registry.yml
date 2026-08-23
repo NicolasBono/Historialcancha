@@ -1,0 +1,45 @@
+# Mismo sistema, pero sin compilar nada: baja las imágenes ya publicadas del registry.
+# Es lo que corre alguien que NO tiene el código — sólo este archivo y un .env.
+#
+#   docker compose -f docker-compose.registry.yml up -d
+#
+# La única diferencia con docker-compose.yml es `image:` en lugar de `build:`.
+services:
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: historialcancha
+      POSTGRES_USER: historial
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD - copiá .env.example a .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U historial -d historialcancha"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ghcr.io/nicolasbono/historialcancha-backend:${TAG:-v0.1.0}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__HistorialCancha: "Host=db;Port=5432;Database=historialcancha;Username=historial;Password=${DB_PASSWORD}"
+      Jwt__Key: ${JWT_KEY:?falta JWT_KEY - copiá .env.example a .env}
+      App__MiEquipo: ${MI_EQUIPO:-Boca Juniors}
+      Cors__OrigenesPermitidos__0: "http://localhost:3000"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/nicolasbono/historialcancha-frontend:${TAG:-v0.1.0}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

@@ -3,6 +3,10 @@ backend/src/HistorialCancha.Api/appsettings.Development.json
 backend/src/HistorialCancha.Api/appsettings.Production.json
 frontend/js/config.js
 
+# --- Secretos del compose: el .env real nunca; el .env.example sí ---
+.env
+!.env.example
+
 # --- Compilados de .NET ---
 bin/
 obj/

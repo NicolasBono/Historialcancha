@@ -1,0 +1,52 @@
+# El sistema completo, declarado. `docker compose up -d --build` y anda.
+services:
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: historialcancha
+      POSTGRES_USER: historial
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD - copiá .env.example a .env}
+    volumes:
+      # Volumen NOMBRADO (no empieza con ./): lo administra Docker y sobrevive a
+      # `docker compose down`. Es lo único del sistema que no es descartable.
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # "arrancó" no es "está listo": esto último es lo que espera el backend.
+      test: ["CMD-SHELL", "pg_isready -U historial -d historialcancha"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Sin `ports`: la base no se publica al host. Sólo la ve el backend, por la red
+    # interna. Además evita chocar con el PostgreSQL que ya corre en esta máquina.
+
+  backend:
+    build: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Host=db: el nombre del servicio. Lo resuelve el DNS interno de compose, así
+      # que no importa en qué IP haya caído el contenedor de la base.
+      ConnectionStrings__HistorialCancha: "Host=db;Port=5432;Database=historialcancha;Username=historial;Password=${DB_PASSWORD}"
+      # El doble guión bajo es cómo se anida una clave de configuración .NET:
+      # Jwt__Key == "Jwt:Key". La app no arranca si falta o es menor a 32 caracteres.
+      Jwt__Key: ${JWT_KEY:?falta JWT_KEY - copiá .env.example a .env}
+      App__MiEquipo: ${MI_EQUIPO:-Boca Juniors}
+      # Array por variable de entorno: el índice va en el nombre.
+      # El browser entra por el 3000 (nginx), así que ése es el único origen posible.
+      Cors__OrigenesPermitidos__0: "http://localhost:3000"
+    ports:
+      # Publicado sólo para poder pegarle con curl/Postman. La app se usa por el 3000.
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

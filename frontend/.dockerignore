@@ -1,0 +1,8 @@
+# La configuración de ESTA máquina: la imagen genera la suya desde config.example.js.
+# Si se colara, la imagen quedaría apuntando a http://localhost:5080 y sólo andaría acá.
+js/config.js
+
+.git/
+.vscode/
+Dockerfile
+.dockerignore

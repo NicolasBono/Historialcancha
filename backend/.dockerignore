@@ -1,0 +1,16 @@
+# Compilados: con ** para agarrarlos en CADA proyecto, no sólo en la raíz.
+# Sin esto, el COPY . . mete el obj/project.assets.json generado por el dotnet run
+# de tu máquina y pisa el que acaba de crear el restore del contenedor.
+**/bin/
+**/obj/
+**/TestResults/
+
+# Configuración local: TIENE credenciales. Nunca entra a la imagen.
+**/appsettings.Development.json
+**/appsettings.Production.json
+
+# Ruido que no aporta a la imagen y sólo agranda el contexto.
+.git/
+.vs/
+.vscode/
+**/*.user
