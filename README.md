@@ -1,4 +1,3 @@
-Rama B
 # Mi historial de hincha
 
 Una app donde cada hincha se registra con su cuenta y anota los partidos de su equipo y
