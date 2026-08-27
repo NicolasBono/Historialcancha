@@ -1,5 +1,16 @@
 # Evidencias
 
+## TP1 — Git colaborativo
+
+### Captura 1 — Push directo a main
+![Prueba de push directo a main](evidenciasCapturas/captura1pruebadirectomain.jpeg)
+
+### Captura 2 — Conflicto de merge (1)
+![Prueba de conflictos 1](evidenciasCapturas/captura2pruebaconflictos1.jpeg)
+
+### Captura 3 — Conflicto de merge (2)
+![Prueba de conflictos 2](evidenciasCapturas/captura3pruebaconflictos2.jpeg)
+
 ---
 
 ## TP2 — Contenedores y Compose
