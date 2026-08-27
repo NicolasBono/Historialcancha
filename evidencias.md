@@ -4,12 +4,18 @@
 
 ### Captura 1 — Push directo a main
 ![Prueba de push directo a main](evidenciasCapturas/captura1pruebadirectomain.jpeg)
+en esta captura vemos como se realizo con exito la configuracion del repo ya que no me dejo subir un cambio directo a la main ya que configuramos que tenia que ser a travez de un pr
 
 ### Captura 2 — Conflicto de merge (1)
 ![Prueba de conflictos 1](evidenciasCapturas/captura2pruebaconflictos1.jpeg)
 
 ### Captura 3 — Conflicto de merge (2)
 ![Prueba de conflictos 2](evidenciasCapturas/captura3pruebaconflictos2.jpeg)
+ en la captura 2 y 3 podemos ver como 2 ramas tienen conflicto ya que modificamos la misma linea entonces no te deja subir ya que no sabe cual es la que esta bien porque cuando se hizo el pr no se habia mergeado la otra rama entonces antes de mergear con el main tenemos que resollver ese conflicto y ver que ponemos en la linea que se superpone
+
+### Captura 4 — Release
+![Prueba de Release](evidenciasCapturas/captura4pruebarelease.jpeg)
+aca vemos como el release quedo subido con el tag v1.0.0
 
 ---
 
