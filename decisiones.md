@@ -46,7 +46,7 @@ Docker Desktop no te arrancaba porque el SVM Mode (virtualización) estaba desac
 El puerto 5432 ocupado
 En tu máquina ya corría un PostgreSQL nativo que ocupaba el 5432. Por eso decidiste que la base del compose no publique puerto (solo la ve el backend por la red interna), y así evitaste el error port is already allocated.Ya que justo antes use ese puerto para hacer el tp con la guia del profe 
 
-Uso de ia en este tp ya si me ayudo la ia a crear el contenido y explicarme por que lo hacia de los dockerfile a solucionar errores de mi compu y a escribir el evidencias.
+Uso de ia en este tp ya si me ayudo la ia a crear el contenido del dockerfile y dockercompose y explicarme por que lo hacia, a solucionar errores de mi compu y a escribir el evidencias.
 
 
 

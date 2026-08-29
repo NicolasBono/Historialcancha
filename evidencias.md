@@ -32,8 +32,16 @@ aca comparo los tamaños con docker images. la imagen del sdk que compila pesa a
 ![Comparacion de tamaños imagen final vs sdk](evidenciasCapturas/captura6tp2tamanos.jpeg)
 
 ### Captura 7 — Prueba de persistencia
-tenia cargado un usuario y varios partidos. cuando hago docker compose down y up de nuevo, sin el -v, los datos siguen estando (me puedo loguear y me trae los partidos), porque el estado vive en el volumen db_data. en cambio cuando hago down -v, el volumen se borra y la base vuelve vacia (ya no me deja loguear). eso muestra que down apaga pero down -v ademas olvida.
-![Prueba de persistencia down/up vs down -v](evidenciasCapturas/captura7tp2persistencia.jpeg)
+para probar la persistencia cuento cuantos usuarios hay en la base antes y despues de apagar. tenia 1 usuario cargado.
+
+primero cuento y me da 1, y despues hago docker compose down (sin el -v): fijate que saca los contenedores y la red pero NO toca el volumen, y vuelvo a levantar con up.
+![Conteo inicial (1) y down sin -v: el volumen no se borra](evidenciasCapturas/captura7.0tp2persistencia.jpeg)
+
+despues hago docker compose down -v, y ahi si, ademas de los contenedores, saca el volumen db_data (se ve la linea "Volume historialcancha_db_data Removed"), y vuelvo a levantar.
+![down -v: esta vez se borra el volumen db_data](evidenciasCapturas/captura7.1tp2persistencia.jpeg)
+
+cuando cuento de nuevo despues del -v me da 0, o sea la base quedo vacia. eso muestra que down apaga pero down -v ademas borra el volumen con los datos, que es lo unico que no es descartable.
+![Conteo despues del -v: 0, la base quedo vacia](evidenciasCapturas/captura7.2tp2persistencia.jpeg)
 
 ### Captura 8 — Imagenes publicadas en el registry
 aca se ven las dos imagenes (back y front) publicadas en ghcr.io con el tag v0.1.0 y en visibilidad publica. las subi con docker push despues de taggearlas.
