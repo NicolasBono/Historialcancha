@@ -54,4 +54,12 @@ Uso de ia en este tp ya si me ayudo la ia a crear el contenido del dockerfile y 
 
 1) le puse 1 semana al sprint ya que como nos vemos todos los miercoles la idea es que hagamos un tp por sprint y hacerlo en una semana seria lo ideal para el trabajo 
 
+2) le puse un limite de wip de 3 en la columna en progreso. la idea es que una tarea que esta en progreso no siempre esta activa al 100%: una la puedo estar codeando, otra puede estar esperando o bloqueada por algo y otra en prueba, entonces con 3 tengo margen para no quedarme frenado cuando una se traba, pero lo corto ahi para no llenar el tablero de cosas empezadas sin terminar. igual el limite es algo que se ajusta segun como fluye el trabajo, asi que si veo que se me empiezan a acumular tareas a medio hacer, bajarlo a 2 seria una buena opcion porque me daria mas foco pero manteniendo algo de margen para los bloqueos. al final la idea del wip es parar de empezar y empezar a terminar, y como trabajo solo lo importante es que el numero sea bajo.
+3) esta historia esta mal escrita porque en realidad es una tarea tecnica y no una historia: dice "crear la tabla usuarios", que es el como se hace por dentro, en vez del valor que le da a un usuario real, ademas el rol es "desarrollador" y no tiene criterios de aceptacion para saber cuando esta hecha.basicamente no cumple con el criterio como quiero para. yo la reescribiria pensando en el usuario, algo como "como usuario quiero registrarme para tener mi propio historial de partidos" con sus criterios de aceptacion, y dejaria "crear la tabla usuarios" como una tarea de esa historia.
+
+Problemas encontrados
+el problema que tuve fue que quise trabajar los PRs desde la terminal con gh pero no lo tenia instalado, me tiraba que el comando no existia. lo resolvi de dos formas: primero segui abriendo los PR desde la web con el link que te da github al pushear, y despues instale gh con winget y me loguee, asi ya lo pude usar desde la terminal.
+
+uso de ia: en este tp la ia me ayudo a redactar los problemas, a subir el tp con su tag y release. Y verificar que este todo loq ue pide el entregable como lo hizo(fui probando cada paso a medida que lo hacia (que los issues quedaran con su label, que la jerarquia se viera en el board, y que el PR cerrara la tarea) y revise que el resultado coincidiera con lo del video antes de darlo por bueno.)
+
 
