@@ -1,5 +1,6 @@
 # Mi historial de hincha
 
+
 Una app donde cada hincha se registra con su cuenta y anota los partidos de su equipo y
 **cómo los vivió**, para responder la pregunta de fondo: *¿soy cábala o soy yeta?* Cada
 usuario ve sólo su propio historial; el equipo que sigue la app es el mismo para todos.
