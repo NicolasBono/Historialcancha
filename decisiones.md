@@ -62,4 +62,15 @@ el problema que tuve fue que quise trabajar los PRs desde la terminal con gh per
 
 uso de ia: en este tp la ia me ayudo a redactar los problemas, a subir el tp con su tag y release. Y verificar que este todo loq ue pide el entregable como lo hizo(fui probando cada paso a medida que lo hacia (que los issues quedaran con su label, que la jerarquia se viera en el board, y que el PR cerrara la tarea) y revise que el resultado coincidiera con lo del video antes de darlo por bueno.)
 
+## TP4 - Pipelines as code
+1) estructura del pipeline: hice dos jobs, build-backend y build-frontend, uno para cada imagen. los puse en paralelo (que es como corren por defecto, cada uno en su propia maquina limpia) porque el back y el front no dependen uno del otro para construirse, asi que no tiene sentido que uno espere al otro y de paso tardan menos. cada job construye con el Dockerfile de su parte. si mi app tuviera un solo Dockerfile seria un solo job, pero como tengo dos imagenes separadas del tp2, van dos jobs.
+
+2) que cachea: lo que se cachea son las capas de la imagen de docker. si una capa no cambio (por ejemplo la que instala las dependencias) se reutiliza en vez de rehacerla, y eso se ve en el log cuando aparece CACHED. cada job guarda sus capas en un scope distinto (scope=backend y scope=frontend) para que no se pisen entre ellos, porque si comparten el mismo scope el ultimo job que termina le borra el cache al otro. lo importante es que el cache es solo una optimizacion para ir mas rapido: puede desaparecer en cualquier momento porque github lo desaloja cuando quiere o por limite de tamaño, asi que el pipeline tiene que funcionar igual sin el, solo que mas lento. si fallara sin cache no seria un cache, seria una dependencia escondida, y eso es un bug.
+
+3) por que construye con mi Dockerfile: el pipeline no compila por su cuenta con dotnet o npm, usa el mismo Dockerfile que ya tenia del tp2.Usando el Dockerfile hay una sola fuente de verdad, y ademas el mismo workflow le sirve a cualquier stack porque el workflow no sabe que hay adentro, eso lo sabe el Dockerfile.
+
+Problemas encontrados
+no tuve problemas mas que algun comando mal escrito de git para subir las cosas
+
+uso de ia: en este tp la ia me ayudo a entender el archivo del pipeline (ci.yml) con los dos jobs y el cache viendo para que sirve cada parte (el scope del cache, el buildx, y por que conviene construir con el Dockerfile en vez de compilar aparte) y a resolver errores de git. a verificar lo que hicimos corriendo el workflow y mirando en la pestaña actions que los dos jobs pasaran en verde, que apareciera CACHED en la segunda corrida, y que el PR con el build roto a proposito quedara bloqueado hasta que lo arregle tambien me ayudo a hacer fallar la compilacion de mi imagen 
 
