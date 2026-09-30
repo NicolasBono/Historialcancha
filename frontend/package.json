@@ -6,9 +6,10 @@
   "description": "Herramientas de test del frontend. NO hay bundler ni transpilador: la app se sirve tal cual, en JavaScript nativo, y esta carpeta node_modules nunca entra a la imagen de nginx. Existe sólo para poder correr la suite y medir cobertura.",
   "scripts": {
     "test": "vitest",
-    "test:ci": "vitest run"
+    "test:ci": "vitest run --coverage"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.3",
     "vitest": "^5.0.3"
   }
 }

@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace HistorialCancha.Domain;
 
 /// <summary>
 /// Parámetros de negocio que vienen de configuración, nunca hardcodeados.
 /// POCO puro: la API lo puebla, el dominio sólo lo lee.
 /// </summary>
+[ExcludeFromCodeCoverage]   // parámetros de configuración, sin comportamiento
 public class OpcionesDominio
 {
     /// <summary>Equipo propio. Un rival nunca puede ser este valor.</summary>

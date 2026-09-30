@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace HistorialCancha.Domain.Entidades;
 
 /// <summary>
 /// Cómo vivió el hincha ese partido. Relación 1:1 con <see cref="Partido"/>.
 /// </summary>
+[ExcludeFromCodeCoverage]   // clase de datos: sólo propiedades, ninguna regla que verificar
 public class Vivencia
 {
     public int PartidoId { get; set; }

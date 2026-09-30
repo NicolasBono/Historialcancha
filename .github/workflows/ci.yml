@@ -30,6 +30,54 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
+      # ── desde acá, el TP5: los tests y su umbral ──
+
+      - name: Construir la etapa de tests del backend
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          target: test        # se detiene en la etapa de tests, no llega al runtime
+          load: true          # la baja al Docker local: sin esto el docker run no la encuentra
+          push: false
+          tags: backend-test:ci
+          # Su propio estante de cache. Ahora el repo construye cuatro cosas
+          # distintas (test e imagen final, del back y del front) y sin un scope
+          # por cada una se pisan el cache entre ellas.
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      - name: Correr los tests del backend con coverage y umbral
+        # El ENTRYPOINT de la etapa ya trae el umbral (60 sobre línea y rama, sobre
+        # el total). Si la cobertura no llega, dotnet test sale con error, el docker
+        # run devuelve ese error y el job se pone rojo con todos los tests en verde.
+        run: docker run --rm -v "${{ github.workspace }}/TestResults:/out" backend-test:ci
+
+      - name: Reporte de coverage del backend
+        if: ${{ !cancelled() }}   # también cuando los tests fallaron: es cuando más se quiere mirar
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          # UN asterisco, no dos: el logger trx deja una COPIA del XML en otra
+          # subcarpeta, y con ** el reporte la cuenta dos veces y el Summary sale
+          # como "MultiReport (2x Cobertura)".
+          # Y no lleva -classfilters: lo que queda afuera de la cuenta sale de los
+          # atributos [ExcludeFromCodeCoverage] del código, que respetan las dos
+          # herramientas. Así el número que frena y el que se muestra son el mismo.
+          reportgenerator \
+            -reports:"TestResults/*/coverage.cobertura.xml" \
+            -sourcedirs:backend \
+            -targetdir:coveragereport \
+            -reporttypes:"Html;MarkdownSummaryGithub"
+          cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Publicar el coverage y los resultados del backend
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-backend
+          path: |
+            coveragereport
+            TestResults/tests.trx
+
   build-frontend:
     runs-on: ubuntu-latest
     steps:
@@ -52,3 +100,49 @@ jobs:
           tags: frontend:ci
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
+      # ── desde acá, el TP5 ──
+
+      - name: Construir la etapa de tests del frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          target: test
+          load: true
+          push: false
+          tags: frontend-test:ci
+          cache-from: type=gha,scope=frontend-test
+          cache-to: type=gha,mode=max,scope=frontend-test
+
+      - name: Correr los tests del frontend con coverage y umbral
+        # COVERAGE_DIR le dice a vitest dónde dejar el reporte, y /salida está
+        # montado sobre frontend-coverage del runner: por eso el reporte aparece
+        # afuera. Si se cambia una de las tres rutas, hay que cambiar las tres.
+        run: |
+          docker run --rm -e COVERAGE_DIR=/salida/reporte \
+            -v "${{ github.workspace }}/frontend-coverage:/salida" frontend-test:ci
+
+      - name: Resumen del coverage del frontend
+        if: ${{ !cancelled() }}
+        run: |
+          F=frontend-coverage/reporte/coverage-summary.json
+          test -f "$F"    # si no está, el paso FALLA: mejor rojo que un resumen vacío
+          node -e "
+            const t = require('./$F').total;
+            // El segundo freno, y es el que este práctico viene a cerrar: si el
+            // include del vitest.config.js no matchea nada, el archivo se escribe
+            // igual con total 0 y pct 'Unknown', el umbral ni se evalúa y el job
+            // quedaría verde publicando una tabla de Unknown%.
+            if (!t.lines.total) { console.error('midio 0 archivos: revisar el include'); process.exit(1); }
+            const f = (m) => \`| \${m} | \${t[m].pct}% |\`;
+            console.log('### Coverage del frontend');
+            console.log('| métrica | % |'); console.log('|---|---|');
+            console.log(f('lines')); console.log(f('branches')); console.log(f('functions'));
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Publicar el coverage del frontend
+        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-frontend
+          path: frontend-coverage

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json.Serialization;
 using HistorialCancha.Api.Middleware;
@@ -118,3 +119,11 @@ await app.Services.MigrarBaseDeDatosAsync(app.Logger);
 await app.Services.CalentarInfraestructuraAsync(app.Logger);
 
 app.Run();
+
+// El arranque queda afuera de la cuenta de cobertura: acá se cablea la aplicación
+// y no hay reglas de negocio que verificar; si está mal, la app no levanta y se
+// nota enseguida. Con top-level statements no hay clase que marcar, así que se
+// declara la parcial al final — es además la que va a necesitar el TP7 para los
+// tests de punta a punta.
+[ExcludeFromCodeCoverage]
+public partial class Program { }
