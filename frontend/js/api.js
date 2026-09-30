@@ -3,7 +3,9 @@
   habla con la API a través de acá. Adjunta el token de sesión en cada
   request y, si el backend responde 401, cierra la sesión y manda al login.
 */
-class ErrorDeApi extends Error {
+import { Auth } from "./auth.js";
+
+export class ErrorDeApi extends Error {
   constructor(mensaje, regla) {
     super(mensaje);
     this.name = "ErrorDeApi";
@@ -11,7 +13,7 @@ class ErrorDeApi extends Error {
   }
 }
 
-const API = (() => {
+export const API = (() => {
   const config = window.APP_CONFIG;
 
   if (!config || !config.apiBaseUrl) {

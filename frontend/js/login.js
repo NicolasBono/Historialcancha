@@ -2,6 +2,9 @@
   Pantalla de ingreso: alterna entre login y registro, y ante éxito guarda la
   sesión y entra al historial. Si ya hay sesión, no tiene sentido mostrar el login.
 */
+import { Auth } from "./auth.js";
+import { API } from "./api.js";
+
 document.addEventListener("DOMContentLoaded", () => {
   if (Auth.haySesion()) {
     location.href = "index.html";

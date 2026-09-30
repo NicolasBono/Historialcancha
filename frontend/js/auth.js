@@ -1,9 +1,10 @@
 /*
   Sesión del hincha en el navegador. Guarda el token JWT y los datos de identidad,
-  y expone el estado de la sesión al resto del frontend. Se carga ANTES que api.js,
-  porque api.js le pide el token para cada request.
+  y expone el estado de la sesión al resto del frontend. api.js le pide el token
+  para cada request, y ahora lo hace importándolo: el orden ya no depende de los
+  <script> del HTML sino del import, que el navegador resuelve solo.
 */
-const Auth = (() => {
+export const Auth = (() => {
   const CLAVE_TOKEN = "hc_token";
   const CLAVE_USUARIO = "hc_usuario";
 

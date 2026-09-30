@@ -2,41 +2,20 @@
   Pantalla de estadísticas. Todo lo que se muestra acá lo calculó el backend:
   este archivo no hace una sola cuenta, sólo pinta.
 */
-const NOMBRE_MODALIDAD = {
-  EnCancha: "En cancha",
-  TV: "TV",
-  Streaming: "Streaming",
-  Radio: "Radio",
-  NoLoVi: "No lo vi"
-};
-
-const NOMBRE_RACHA = {
-  invicto: "Invicto",
-  sinGanar: "Sin ganar",
-  sinRecibirGoles: "Sin recibir goles"
-};
-
-const SIN_DATO = "—";
+import { API } from "./api.js";
+import { escapar } from "./lib/dom.js";
+import {
+  NOMBRE_MODALIDAD,
+  NOMBRE_RACHA,
+  SIN_DATO,
+  conSigno,
+  describirRacha,
+  efectividad,
+  formatearFecha
+} from "./lib/formato.js";
 
 function texto(id, valor) {
   document.getElementById(id).textContent = valor;
-}
-
-function escapar(valor) {
-  const div = document.createElement("div");
-  div.textContent = valor ?? "";
-  return div.innerHTML;
-}
-
-function formatearFecha(iso) {
-  if (!iso) return SIN_DATO;
-  const [anio, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${anio}`;
-}
-
-/** Con cero partidos la efectividad no significa nada: se muestra un guión. */
-function efectividad(record) {
-  return record.partidosJugados === 0 ? SIN_DATO : `${record.efectividad}%`;
 }
 
 function celdasDeRecord(r) {
@@ -47,7 +26,7 @@ function celdasDeRecord(r) {
     <td>${r.perdidos}</td>
     <td>${r.golesAFavor}</td>
     <td>${r.golesEnContra}</td>
-    <td>${r.diferenciaDeGol > 0 ? "+" : ""}${r.diferenciaDeGol}</td>
+    <td>${conSigno(r.diferenciaDeGol)}</td>
     <td class="efec">${efectividad(r)}</td>`;
 }
 
@@ -58,7 +37,7 @@ function pintarGlobal(r) {
     ["Partidos", r.partidosJugados],
     ["G - E - P", `${r.ganados} - ${r.empatados} - ${r.perdidos}`],
     ["Goles", `${r.golesAFavor} : ${r.golesEnContra}`],
-    ["Diferencia", `${r.diferenciaDeGol > 0 ? "+" : ""}${r.diferenciaDeGol}`],
+    ["Diferencia", conSigno(r.diferenciaDeGol)],
     ["Efectividad", efectividad(r)],
     ["Promedio GF", r.partidosJugados === 0 ? SIN_DATO : r.promedioGolesAFavor],
     ["Promedio GC", r.partidosJugados === 0 ? SIN_DATO : r.promedioGolesEnContra]
@@ -102,12 +81,6 @@ function pintarModalidad(resumen) {
 }
 
 /* ---------- rachas ---------- */
-
-function describirRacha(racha) {
-  if (racha.longitud === 0) return SIN_DATO;
-  const partidos = racha.longitud === 1 ? "1 partido" : `${racha.longitud} partidos`;
-  return racha.enCurso ? `${partidos} (en curso)` : partidos;
-}
 
 function pintarRachas(resumen) {
   const filas = Object.entries(NOMBRE_RACHA).map(([clave, nombre]) => {

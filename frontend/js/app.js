@@ -1,6 +1,9 @@
 /*
   Arranque de la app: pinta versión y entorno, y vigila el estado del backend.
 */
+import { Auth } from "./auth.js";
+import { API } from "./api.js";
+
 const INTERVALO_CHEQUEO_MS = 30000;
 
 function pintarIdentidad() {
