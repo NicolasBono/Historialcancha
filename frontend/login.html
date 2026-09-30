@@ -60,9 +60,10 @@
     </section>
   </main>
 
+  <!-- config.js queda como script clásico y primero: define window.APP_CONFIG, que los
+       módulos leen al evaluarse. auth.js y api.js ya no se listan acá — entran por los
+       import de los módulos, que el navegador resuelve en el orden correcto solo. -->
   <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/login.js"></script>
+  <script type="module" src="js/login.js"></script>
 </body>
 </html>

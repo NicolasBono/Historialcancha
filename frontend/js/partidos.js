@@ -1,30 +1,14 @@
 /*
   Alta, edición, listado y baja de partidos.
 */
-const MODALIDADES = {
-  EnCancha: "En cancha",
-  TV: "TV",
-  Streaming: "Streaming",
-  Radio: "Radio",
-  NoLoVi: "No lo vi"
-};
-
-const RESULTADOS = { Victoria: "V", Empate: "E", Derrota: "D" };
+import { API } from "./api.js";
+import { escapar } from "./lib/dom.js";
+import { NOMBRE_MODALIDAD, RESULTADOS, contarPartidos, formatearFecha } from "./lib/formato.js";
+import { buscarPartidoPorId } from "./lib/partidos-datos.js";
 
 let enEdicion = null;   // id del partido que se está editando, o null si es un alta
 
 /* ---------- utilidades ---------- */
-
-function escapar(texto) {
-  const div = document.createElement("div");
-  div.textContent = texto ?? "";
-  return div.innerHTML;
-}
-
-function formatearFecha(iso) {
-  const [anio, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${anio}`;
-}
 
 function mostrarError(mensaje) {
   const caja = document.getElementById("error-form");
@@ -51,7 +35,7 @@ function filaDePartido(p) {
       <td>${escapar(p.torneo)}</td>
       <td class="marcador">${marcador}</td>
       <td><span class="resultado" data-resultado="${p.resultado}">${RESULTADOS[p.resultado]}</span></td>
-      <td>${MODALIDADES[p.modalidad] ?? p.modalidad}</td>
+      <td>${NOMBRE_MODALIDAD[p.modalidad] ?? p.modalidad}</td>
       <td class="acciones">
         <button type="button" class="enlace" data-editar="${p.id}">editar</button>
         <button type="button" class="enlace peligro" data-eliminar="${p.id}">borrar</button>
@@ -67,8 +51,7 @@ async function cargarPartidos() {
   try {
     const partidos = await API.listarPartidos();
 
-    document.getElementById("contador").textContent =
-      partidos.length === 1 ? "1 partido" : `${partidos.length} partidos`;
+    document.getElementById("contador").textContent = contarPartidos(partidos.length);
 
     if (partidos.length === 0) {
       tabla.hidden = true;
@@ -173,8 +156,7 @@ async function manejarClickTabla(evento) {
   const eliminar = evento.target.closest("[data-eliminar]");
 
   if (editar) {
-    const partidos = await API.listarPartidos();
-    const partido = partidos.find((p) => p.id === Number(editar.dataset.editar));
+    const partido = await buscarPartidoPorId(editar.dataset.editar, API.listarPartidos);
     if (partido) cargarEnFormulario(partido);
     return;
   }
