@@ -11,6 +11,9 @@ COPY HistorialCancha.sln .
 COPY src/HistorialCancha.Domain/HistorialCancha.Domain.csproj src/HistorialCancha.Domain/
 COPY src/HistorialCancha.Infrastructure/HistorialCancha.Infrastructure.csproj src/HistorialCancha.Infrastructure/
 COPY src/HistorialCancha.Api/HistorialCancha.Api.csproj src/HistorialCancha.Api/
+# El proyecto de tests entra al restore porque la solución lo nombra: sin este COPY,
+# el "dotnet restore HistorialCancha.sln" falla acá adentro aunque en tu máquina ande.
+COPY tests/HistorialCancha.Tests/HistorialCancha.Tests.csproj tests/HistorialCancha.Tests/
 RUN dotnet restore HistorialCancha.sln
 
 # Ahora sí el código. Esta capa se invalida en cada commit, y está bien: es barata.
