@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using HistorialCancha.Domain.Entidades;
 
 namespace HistorialCancha.Domain.Estadisticas;
@@ -6,6 +7,7 @@ namespace HistorialCancha.Domain.Estadisticas;
 /// El récord de un conjunto de partidos. Sirve para el global, para una modalidad,
 /// para un rival o para cualquier otro recorte.
 /// </summary>
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record Record(
     int PartidosJugados,
     int Ganados,

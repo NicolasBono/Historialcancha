@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using HistorialCancha.Domain.Entidades;
 
@@ -5,8 +6,10 @@ namespace HistorialCancha.Domain.Estadisticas;
 
 public enum Veredicto { Cabala, Yeta, Indefinido }
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record RecordPorModalidad(Modalidad Modalidad, Record Record);
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record ResumenModalidad(
     IReadOnlyList<RecordPorModalidad> PorModalidad,
     Record EnCancha,

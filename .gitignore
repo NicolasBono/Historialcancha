@@ -27,3 +27,10 @@ desktop.ini
 # coverage/ es salida de cada corrida.
 node_modules/
 frontend/coverage/
+
+# Salidas de cada corrida de cobertura (TP5). Se regeneran, no se versionan.
+**/TestResults/
+backend/coveragereport/
+frontend-coverage/
+# El que deja coverlet.msbuild al lado del proyecto de tests.
+**/coverage.json

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using HistorialCancha.Domain.Entidades;
 
 namespace HistorialCancha.Api.Dtos;
@@ -8,6 +9,7 @@ namespace HistorialCancha.Api.Dtos;
 /// Los strings son nullable a propósito: si el cliente omite un campo,
 /// lo rechaza el validador de dominio con un mensaje claro, no un NullReference.
 /// </summary>
+[ExcludeFromCodeCoverage]   // clase de datos: sólo propiedades, ninguna regla que verificar
 public record PartidoRequest(
     DateOnly Fecha,
     string? Rival,
@@ -21,6 +23,7 @@ public record PartidoRequest(
     string? ConQuien,
     byte? Nota);
 
+[ExcludeFromCodeCoverage]   // clase de datos: sólo propiedades, ninguna regla que verificar
 public record PartidoResponse(
     int Id,
     DateOnly Fecha,

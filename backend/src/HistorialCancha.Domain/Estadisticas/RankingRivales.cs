@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using HistorialCancha.Domain.Entidades;
 
 namespace HistorialCancha.Domain.Estadisticas;
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record RecordRival(string Rival, Record Record);
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record ResumenRivales(
     RecordRival? Talisman,
     RecordRival? Maldicion,

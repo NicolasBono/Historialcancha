@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace HistorialCancha.Domain.Entidades;
 
 /// <summary>
@@ -5,6 +7,7 @@ namespace HistorialCancha.Domain.Entidades;
 /// La contraseña nunca se guarda en claro: sólo su hash, calculado en la
 /// infraestructura. El dominio ignora cómo se hashea.
 /// </summary>
+[ExcludeFromCodeCoverage]   // clase de datos: sólo propiedades, ninguna regla que verificar
 public class Usuario
 {
     public int Id { get; set; }

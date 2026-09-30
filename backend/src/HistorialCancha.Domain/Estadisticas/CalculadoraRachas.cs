@@ -1,14 +1,18 @@
+using System.Diagnostics.CodeAnalysis;
 using HistorialCancha.Domain.Entidades;
 
 namespace HistorialCancha.Domain.Estadisticas;
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record Racha(int Longitud, DateOnly? Desde, DateOnly? Hasta, bool EnCurso)
 {
     public static readonly Racha Ninguna = new(0, null, null, false);
 }
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record RachasDeTipo(Racha Actual, Racha MasLarga);
 
+[ExcludeFromCodeCoverage]   // resultado de la cuenta, no la cuenta
 public record ResumenRachas(
     RachasDeTipo Invicto,
     RachasDeTipo SinGanar,
