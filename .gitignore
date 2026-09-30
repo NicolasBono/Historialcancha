@@ -22,3 +22,8 @@ obj/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Herramientas de test del frontend (TP5). node_modules jamás se versiona;
+# coverage/ es salida de cada corrida.
+node_modules/
+frontend/coverage/
