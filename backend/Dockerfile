@@ -28,7 +28,14 @@ RUN dotnet publish src/HistorialCancha.Api/HistorialCancha.Api.csproj \
 # código. No se compila nada acá: el ENTRYPOINT corre recién en el `docker run` del
 # pipeline, y por eso los resultados salen por el volumen montado.
 FROM build AS test
-ENTRYPOINT ["dotnet", "test", "tests/HistorialCancha.Tests/HistorialCancha.Tests.csproj",             "--collect:XPlat Code Coverage",             "-p:CollectCoverage=true",             "-p:Threshold=60",             "-p:ThresholdType=line%2cbranch",             "-p:ThresholdStat=total",             "--logger", "trx;LogFileName=tests.trx",             "--results-directory", "/out"]
+ENTRYPOINT ["dotnet", "test", "tests/HistorialCancha.Tests/HistorialCancha.Tests.csproj", \
+            "--collect:XPlat Code Coverage", \
+            "-p:CollectCoverage=true", \
+            "-p:Threshold=60", \
+            "-p:ThresholdType=line%2cbranch", \
+            "-p:ThresholdStat=total", \
+            "--logger", "trx;LogFileName=tests.trx", \
+            "--results-directory", "/out"]
 # Los dos mecanismos de cobertura conviven y hacen cosas distintas: el --collect deja
 # el XML que el pipeline convierte en reporte, y los -p: son los que FRENAN. Sin los
 # -p: la cobertura se mide y no exige nada.
