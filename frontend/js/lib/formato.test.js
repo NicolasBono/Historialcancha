@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   SIN_DATO,
+  clasificarMarcador,
   conSigno,
   contarPartidos,
   describirRacha,
@@ -79,5 +80,35 @@ describe('contarPartidos', () => {
     [12, '12 partidos']
   ])('con %i dice "%s"', (cantidad, esperado) => {
     expect(contarPartidos(cantidad)).toBe(esperado)
+  })
+})
+
+describe('clasificarMarcador', () => {
+  it.each([
+    ['goleada', 5, 0],            // diferencia 5
+    ['victoria', 2, 1],           // diferencia 1
+    ['empate sin goles', 0, 0],   // el 0 a 0, que es su propio caso
+    ['empate', 2, 2],             // empate con goles
+    ['derrota', 1, 3],            // diferencia -2
+    ['paliza', 0, 4]              // diferencia -4
+  ])('un %s sale de %i a %i', (esperado, aFavor, enContra) => {
+    expect(clasificarMarcador(aFavor, enContra)).toBe(esperado)
+  })
+
+  it.each([
+    [3, 0, 'victoria'],   // tres de diferencia todavía NO es goleada
+    [4, 0, 'goleada'],    // cuatro sí
+    [0, 3, 'derrota'],    // tres en contra todavía NO es paliza
+    [0, 4, 'paliza']      // cuatro sí
+  ])('en el borde, %i a %i es "%s"', (aFavor, enContra, esperado) => {
+    // Los cuatro bordes de las dos reglas con umbral. Si alguien cambia un >= por
+    // un >, estos son los únicos tests que se ponen rojos.
+    expect(clasificarMarcador(aFavor, enContra)).toBe(esperado)
+  })
+
+  it('el 0 a 0 no se confunde con cualquier otro empate', () => {
+    // Las dos ramas devuelven cosas distintas y la condición que las separa mira
+    // los goles, no la diferencia: sin este par, el orden de los if daría igual.
+    expect(clasificarMarcador(0, 0)).not.toBe(clasificarMarcador(1, 1))
   })
 })
