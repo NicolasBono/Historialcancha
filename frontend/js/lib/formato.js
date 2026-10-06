@@ -68,3 +68,21 @@ export function conSigno(numero) {
 export function contarPartidos(cantidad) {
   return cantidad === 1 ? "1 partido" : `${cantidad} partidos`;
 }
+
+/**
+ * Clasifica un marcador para poder destacarlo en el listado: no es lo mismo
+ * ganar 1 a 0 que meter una goleada, y hoy la tabla los muestra igual.
+ * @param {number} aFavor
+ * @param {number} enContra
+ * @returns {string} la etiqueta que va en la celda del marcador
+ */
+export function clasificarMarcador(aFavor, enContra) {
+  const diferencia = aFavor - enContra;
+
+  if (diferencia >= 4) return 'goleada';
+  if (diferencia > 0) return 'victoria';
+  if (diferencia === 0 && aFavor === 0) return 'empate sin goles';
+  if (diferencia === 0) return 'empate';
+  if (diferencia <= -4) return 'paliza';
+  return 'derrota';
+}

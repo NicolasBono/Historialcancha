@@ -3,7 +3,7 @@
 */
 import { API } from "./api.js";
 import { escapar } from "./lib/dom.js";
-import { NOMBRE_MODALIDAD, RESULTADOS, contarPartidos, formatearFecha } from "./lib/formato.js";
+import { NOMBRE_MODALIDAD, RESULTADOS, clasificarMarcador, contarPartidos, formatearFecha } from "./lib/formato.js";
 import { buscarPartidoPorId } from "./lib/partidos-datos.js";
 
 let enEdicion = null;   // id del partido que se está editando, o null si es un alta
@@ -33,7 +33,7 @@ function filaDePartido(p) {
       <td>${formatearFecha(p.fecha)}</td>
       <td class="rival">${escapar(p.rival)} <span class="condicion">${condicion}</span></td>
       <td>${escapar(p.torneo)}</td>
-      <td class="marcador">${marcador}</td>
+      <td class="marcador" title="${clasificarMarcador(p.golesAFavor, p.golesEnContra)}">${marcador}</td>
       <td><span class="resultado" data-resultado="${p.resultado}">${RESULTADOS[p.resultado]}</span></td>
       <td>${NOMBRE_MODALIDAD[p.modalidad] ?? p.modalidad}</td>
       <td class="acciones">
