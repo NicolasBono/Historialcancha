@@ -214,7 +214,10 @@ jobs:
           echo "Esperando a que QA esté vivo..."
           for i in $(seq 1 30); do
             SALUD=$(curl -fsS --max-time 10 "$URL_API/api/health" || true)
-            if echo "$SALUD" | grep -q '"baseDeDatos":"ok"' \
+            # La api tiene que informar el commit que se mandó a desplegar: si todavía
+            # contesta la versión anterior (Render sigue construyendo), no cuenta.
+            if echo "$SALUD" | grep -q "\"commit\":\"$GITHUB_SHA\"" \
+               && echo "$SALUD" | grep -q '"baseDeDatos":"ok"' \
                && curl -fsS --max-time 10 "$URL_FRONT/" > /dev/null \
                && curl -fsS --max-time 10 "$URL_FRONT/api/health" > /dev/null; then
               echo "$SALUD"
@@ -263,7 +266,10 @@ jobs:
           echo "Esperando a que PROD esté vivo..."
           for i in $(seq 1 30); do
             SALUD=$(curl -fsS --max-time 10 "$URL_API/api/health" || true)
-            if echo "$SALUD" | grep -q '"baseDeDatos":"ok"' \
+            # La api tiene que informar el commit que se mandó a desplegar: si todavía
+            # contesta la versión anterior (Render sigue construyendo), no cuenta.
+            if echo "$SALUD" | grep -q "\"commit\":\"$GITHUB_SHA\"" \
+               && echo "$SALUD" | grep -q '"baseDeDatos":"ok"' \
                && curl -fsS --max-time 10 "$URL_FRONT/" > /dev/null \
                && curl -fsS --max-time 10 "$URL_FRONT/api/health" > /dev/null; then
               echo "$SALUD"
