@@ -38,6 +38,12 @@ ENTRYPOINT ["npm", "run", "test:ci"]
 
 # ---- Etapa 3: nginx sirve los estáticos (ya la tenías, queda ÚLTIMA) ----
 FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# En templates/ y no en conf.d/: nginx leería conf.d/ tal cual, con los ${…} sin
+# reemplazar, y no arrancaría. El entrypoint de la imagen genera conf.d/default.conf.
+COPY default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /sitio /usr/share/nginx/html
+# Defaults para compose: el nombre del servicio y el DNS interno de Docker.
+# Render los pisa con las variables de cada servicio.
+ENV BACKEND_URL=http://backend:8080 \
+    DNS_RESOLVER=127.0.0.11
 EXPOSE 80
