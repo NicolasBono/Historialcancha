@@ -37,8 +37,10 @@ function filaDePartido(p) {
       <td><span class="resultado" data-resultado="${p.resultado}">${RESULTADOS[p.resultado]}</span></td>
       <td>${NOMBRE_MODALIDAD[p.modalidad] ?? p.modalidad}</td>
       <td class="acciones">
-        <button type="button" class="enlace" data-editar="${p.id}">editar</button>
-        <button type="button" class="enlace peligro" data-eliminar="${p.id}">borrar</button>
+        <button type="button" class="enlace" data-editar="${p.id}"
+                aria-label="Editar partido contra ${escapar(p.rival)}">editar</button>
+        <button type="button" class="enlace peligro" data-eliminar="${p.id}"
+                aria-label="Borrar partido contra ${escapar(p.rival)}">borrar</button>
       </td>
     </tr>`;
 }

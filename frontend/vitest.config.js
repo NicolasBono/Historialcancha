@@ -1,7 +1,10 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
+    // Los specs de Playwright (e2e/) no son de vitest: si los levantara, explotaría
+    // con «You are calling test() from an async test.describe() block».
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     coverage: {
       provider: 'v8',
 
