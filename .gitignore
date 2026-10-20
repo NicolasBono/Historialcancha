@@ -34,3 +34,7 @@ backend/coveragereport/
 frontend-coverage/
 # El que deja coverlet.msbuild al lado del proyecto de tests.
 **/coverage.json
+
+# Playwright: se generan en cada corrida
+playwright-report/
+test-results/
