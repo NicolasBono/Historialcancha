@@ -1,5 +1,32 @@
 # Decisiones
 
+## Enlaces de este TP (TP6)
+
+los paquetes y las urls viven afuera del repo, por eso van aca.
+
+paquetes publicos del registry (se bajan sin credenciales):
+- backend: https://github.com/users/NicolasBono/packages/container/package/historialcancha-backend
+- frontend: https://github.com/users/NicolasBono/packages/container/package/historialcancha-frontend
+- los dos etiquetados con el commit del merge que esta en prod (v6.0.0):
+  `docker pull ghcr.io/nicolasbono/historialcancha-backend:sha-234eac32425af16b8457fa2ae3c39e89dfed5dfc`
+  `docker pull ghcr.io/nicolasbono/historialcancha-frontend:sha-234eac32425af16b8457fa2ae3c39e89dfed5dfc`
+
+la cadena de la tarea 1:
+- job de un PR con los tests en verde donde "Entrar al registry" sale salteado (solo main publica):
+  https://github.com/NicolasBono/Historialcancha/actions/runs/37652974547/job/112900806568
+- lista de pasos de una corrida de main, donde "Construir y publicar la imagen" es el ultimo paso,
+  despues de los tests: https://github.com/NicolasBono/Historialcancha/actions/runs/39068689730/job/117501586191
+
+los entornos (vivos hasta la defensa; el primer pedido tarda ~1 min si estaban dormidos):
+- QA: https://historialcancha-front-qa.onrender.com · api: https://historialcancha-api-qa.onrender.com/api/health
+- PROD: https://historialcancha-front-prod.onrender.com · api: https://historialcancha-api-prod.onrender.com/api/health
+
+corridas que conviene mirar:
+- rechazo con motivo: https://github.com/NicolasBono/Historialcancha/actions/runs/39068216767
+- flujo aprobado (QA → waiting for review → aprobado → PROD), y despues re-corrido para el rollback:
+  https://github.com/NicolasBono/Historialcancha/actions/runs/39068689730
+- release: https://github.com/NicolasBono/Historialcancha/releases/tag/v6.0.0
+
 ## TP1- Git colaborativo
 1.¿porque git no pudo resolver el conflicto solo y que habria tenido que pasar para que nunca apareciera?
 porque git no entiende el codigo ni el texto si no que lo que hace es comparar desde donde se separaron la rama,una version en una rama y la otra version en la otra rama,ve en cada rama que lineas se tocaron y si las 2 ramas salieron de la misma version y tocan la misma linea va a haber un conflicto. primero cuando quiero subir la rama b git me frena el push porque estoy atrasado,ya que la rama a se subio antes,entonces hago un pull y ahi git si trae los cambios y corre un merge por detras,pero en ese merge ve que las dos ramas cambiaron la misma linea y no puede decidir cual de las dos vale,asi que frena a la mitad y me pregunta a mi. ese es el verdadero motivo por el que no lo resuelve solo,no es que le falle la verificacion de version ni que no pueda pullear,es que tiene dos cambios validos sobre la misma linea y no sabe cual quiero. para evitarlo tendria que o primero haberse subido la rama a y desde esa version hacer la rama b y subirla,asi te queda la respuesta de la rama b,o si no que no toquen las mismas lineas 
@@ -279,3 +306,241 @@ imagen de nginx.
 
 
 Me ayudo a la hora de escribir el contenido de los pr y a subir las cosas al repo
+
+## TP6 - CD: environments, aprobaciones y deployment patterns
+
+los enlaces de este tp (paquetes, corridas y urls) estan arriba de todo, en "Enlaces de este TP".
+
+1) que use
+
+| lo que se pedia | lo que use |
+|---|---|
+| registry | ghcr.io, con el GITHUB_TOKEN de cada corrida (ningun secret nuevo) |
+| entornos | dos environments de github: qa (sin reglas) y production (con required reviewer: yo) |
+| donde corre | render, 4 web services con docker: api y front, en qa y en prod. region virginia, plan free |
+| base de datos | neon, un proyecto con dos bases separadas: app_qa y app_prod |
+| quien dispara el deploy | mi pipeline, con el deploy hook de render + &ref=<commit>. auto-deploy en off en los 4 |
+| las tablas | las crea la app sola al arrancar (MigrateAsync de entity framework) |
+
+no use el postgres de render porque el gratis vence a los 30 dias, y neon es gratis permanente.
+
+los cinco puntos del contrato: dos entornos con su url (qa y prod), una base por entorno (app_qa y
+app_prod), front y back como contenedores a partir de mis dockerfiles (runtime docker en render), el
+deploy lo dispara el pipeline con el commit verificado (auto-deploy off), y prod detras de la
+aprobacion del environment production.
+
+2) por que el artefacto se publica solo con la verificacion en verde
+
+el pipeline ahora deja algo: las dos imagenes en ghcr.io, etiquetadas con el commit que las produjo
+(sha-<commit>). que en el registry haya solo cosas verificadas no lo garantiza un control, lo
+garantizan tres eslabones encadenados:
+1. nada entra a main sin el pipeline en verde (el gate del tp4 y el umbral de cobertura del tp5).
+2. solo main publica: el push de la imagen tiene la condicion de evento push Y rama main. en un PR
+   construye y verifica pero no sube nada.
+3. publicar es el ULTIMO paso del mismo job que corre los tests. si un test falla el job muere ahi
+   y nunca llega a publicar. no hay ningun if de "si los tests pasaron": la condicion es el orden.
+
+si se publicara igual con los tests en rojo, estar en el registry dejaria de significar "esto paso
+la verificacion" y pasaria a ser un deposito de cosas que alguien construyo alguna vez.
+
+lo que NO garantiza: es "por accidente". yo puedo hacer un docker push a mano desde mi maquina y
+nadie me lo impide; la cadena garantiza lo que publica el pipeline, no lo que fisicamente puede
+entrar. y la etiqueta sha-... se puede pisar; lo que identifica una imagen de forma inmutable es su
+digest (sha256:...).
+
+el permiso de escribir paquetes lo declare adentro de cada job y no arriba de todo, porque arriba
+reemplaza el default de todos los jobs: asi solo tiene permiso el que publica (minimo privilegio).
+
+3) continuous delivery, no continuous deployment
+
+implemente continuous delivery: todo cambio verificado llega solo a QA y queda listo para prod,
+pero a prod lo sube una persona. no hice continuous deployment (sin humano) porque mi red de
+seguridad no alcanza: el smoke solo prueba que la app contesta, no tengo monitoreo ni metricas de
+errores, y los tests de integracion con la api levantada recien llegan en el tp7. automatizar el
+ultimo paso con eso seria automatizar la propagacion de errores.
+
+4) la cadena: needs, if y environments
+
+build-backend y build-frontend (en paralelo) → deploy-qa → deploy-prod
+
+- deploy-qa tiene needs de los dos builds: sin ci verde no hay deploy. y tiene el if de rama main:
+  los PRs verifican pero no despliegan.
+- deploy-prod tiene needs: deploy-qa. no repite el if de la rama y no es un olvido: como depende de
+  deploy-qa, que si lo tiene, en un PR no corre ninguno de los dos (se ve en los checks de los PRs:
+  los dos salen salteados). y si el smoke de QA falla, deploy-prod ni arranca.
+- environment: qa y environment: production conectan cada job con su environment: hereda sus
+  secrets, aplica sus reglas y queda en el historial de Deployments.
+- deploy-prod tiene concurrency (group deploy-prod) para que no haya dos deploys a prod pisandose.
+  no ordena la cola de aprobaciones: si quedan dos corridas esperando, la vieja la rechazo a mano,
+  porque aprobarla despues de la nueva haria retroceder prod.
+
+el &ref=$GITHUB_SHA en el hook es lo mas importante del job: un hook pelado despliega la punta de
+la rama. con dos merges seguidos, la corrida del primero desplegaria el segundo, que todavia no
+paso por nada; y en prod, entre que la corrida espera y yo apruebo, main se puede mover, y
+aprobaria una cosa y subiria otra. con el &ref se despliega el commit que se verifico y se aprobo.
+va con & y no con ? porque el hook ya trae su ?key=. lo comprobe en render → deploys: cada deploy
+dice el commit del merge que lo disparo.
+
+5) el alcance de cada secret
+
+los cuatro deploy hooks de render son secrets (con la url cualquiera despliega mi app), y cada uno
+vive en su environment, no en el repo:
+- qa: RENDER_HOOK_API_QA y RENDER_HOOK_FRONT_QA
+- production: RENDER_HOOK_API_PROD y RENDER_HOOK_FRONT_PROD
+
+los de prod solo los lee un job que apunta a production, y ese job no arranca hasta que yo apruebo:
+sin aprobacion no los lee nadie. si estuvieran en el repo, cualquier job de cualquier workflow los
+podria usar y desplegar a prod salteandose el gate. los cargue sin --body / desde la web, para que
+la url no quede en el historial de la terminal.
+
+el token del registry no es un secret mio: es el GITHUB_TOKEN que github le da a cada corrida y
+vive lo que dura el job.
+
+6) que quedo por variable y que quedo adentro de la imagen
+
+el front: el nginx.conf paso a ser una plantilla (default.conf.template en /etc/nginx/templates/).
+la imagen oficial de nginx reemplaza ${BACKEND_URL} y ${DNS_RESOLVER} al arrancar. en compose valen
+los defaults del dockerfile (http://backend:8080 y el dns de docker), y en render cada front tiene
+la url de la api de SU entorno y un dns publico. lo probe local: la misma imagen sin variables
+apunta a backend:8080 y con variables apunta a la api de qa. misma imagen, dos configuraciones: es
+lo que hace posible el tp7 (desplegar la misma imagen en qa y prod).
+
+el back, por variable de entorno en cada servicio de render: la cadena de conexion de SU base,
+Jwt__Key (distinta en qa y en prod), App__MiEquipo, Cors__OrigenesPermitidos__0 (el front de su
+entorno), ASPNETCORE_ENVIRONMENT y Salud__TimeoutChequeoMs.
+
+adentro de la imagen queda solo lo que es igual en todos lados: el codigo, el sitio estatico y los
+defaults de compose. la guia pide solo la connection string, pero mi app no arranca sin esas cinco
+variables (lo valida al arrancar y dice cual falta).
+
+7) que mira mi aprobador antes de aprobar
+
+1. que build y QA esten en verde.
+2. CUANTO tardo el smoke de QA. si dio verde en menos de lo que tarda render en construir (minutos),
+   no probo nada: probo la version anterior.
+3. que QA este corriendo ESTE commit: el /api/health devuelve el commit, y tiene que ser el de la
+   corrida que estoy aprobando.
+4. que cambia este deploy (el PR) y si toca algo delicado: la base, la cadena de conexion, una
+   migracion.
+5. que no haya otra corrida mas nueva esperando: si la hay, rechazo la vieja.
+
+lo que mi aprobador NO puede ver hoy: si la app anda bien con usuarios reales (no hay metricas ni
+logs centralizados), si una migracion es reversible, y la version del front (nginx no informa su
+commit, solo la api).
+
+el rechazo: lo hice dos veces. el que defiendo es el segundo
+(https://github.com/NicolasBono/Historialcancha/actions/runs/39068216767): el smoke de QA dio verde
+2 segundos despues de disparar los hooks (20:48:52 → 20:48:54). en 2 segundos render no puede
+construir, asi que el smoke valido la version anterior y no el commit eebe0b0. no subi a prod algo
+que esa corrida no habia verificado. el job quedo en failure y prod no se toco.
+
+y ese rechazo lo arregle: el /api/health ahora devuelve el commit que corre (render lo inyecta en
+RENDER_GIT_COMMIT) y el smoke de qa y de prod solo da verde cuando coincide con el commit que mando
+a desplegar. en la corrida siguiente el smoke espero 65 segundos, hasta que render termino. ese
+fue el deploy que aprobe.
+
+8) la letra chica del free tier
+
+- render duerme cada servicio a los 15 min sin trafico, y el primer pedido lo despierta con un
+  cold start de hasta ~1 minuto. por eso el smoke reintenta 30 veces cada 20 s, con --max-time 10
+  en cada curl (un servicio despertando acepta la conexion y no contesta; sin tope el curl se
+  cuelga).
+- 750 horas por mes por WORKSPACE, no por servicio. con los 4 durmiendo cuando no se usan alcanza;
+  lo que no hago es dejar algo pingueando para que no duerman.
+- 500 minutos de build por mes. cada deploy son 2 builds por entorno (api y front): una promocion
+  completa son 4 builds de ~1-2 min. si se acaban, render deja de construir y el hook responde
+  igual, por eso importa que el smoke compare el commit.
+- neon suspende la base a los ~5 min sin uso y se despierta sola (mas rapido). 0.5 GB.
+- un problema propio de la region: la api esta en virginia y la base en sao paulo, y mi chequeo
+  de salud le daba 600 ms a la base: no alcanzaba y el health decia baseDeDatos: error con la base
+  andando. lo subi a 3000 con la variable Salud__TimeoutChequeoMs en render, sin tocar el codigo
+  (en compose la base esta al lado y los 600 ms estan bien).
+
+9) que garantia pierdo porque render reconstruye
+
+mi pipeline publica la imagen que verifico, pero render no la usa: vuelve a construir desde el repo
+con el commit que le paso. o sea que despliego el commit verificado, no la imagen verificada. son
+dos builds del mismo codigo y pueden salir distintos: una imagen base (nginx:alpine, aspnet:9.0)
+que se actualizo entre un build y otro, o una dependencia que cambio. si pasa, lo que corre en prod
+no es lo que pasaron mis tests. se arregla en el tp7, cuando render deje de construir y ejecute la
+imagen del registry.
+
+10) que prueba mi smoke y que no
+
+prueba: que la api contesta, que la base responde, que el front se sirve, que el front llega a SU
+api a traves de la plantilla de nginx, y que la api corre el commit que se mando a desplegar.
+
+mi smoke es distinto al del video: mi /api/health devuelve 200 aunque la base este caida (lo
+informa en el campo baseDeDatos), y todos los endpoints de datos piden login, asi que no tengo un
+/api/tareas para pegarle. por eso la prueba de la base es leer "baseDeDatos":"ok" y no el codigo
+http. y le agregue pegarle a front/api/health, que el del video no tiene.
+
+no prueba: que la app funcione bien (no hace login ni carga un partido), la version del front, ni
+que no haya errores para los usuarios.
+
+11) deployment pattern para una produccion real, y rollback
+
+para esta app con usuarios reales usaria blue-green. es una app chica con una sola instancia, asi
+que rolling no aplica (no hay "tandas"), y canary pide metricas para decidir si el canario anda
+bien, que hoy no tengo. blue-green me da lo que mas me importa: rollback instantaneo (volver el
+router al entorno anterior) y cero downtime. el costo es tener la infraestructura doble, que para
+una app chica es poco. el cuidado esta en la base: las dos versiones usan la misma, asi que las
+migraciones tienen que ser compatibles hacia atras (agregar columnas, no borrarlas en el mismo
+deploy).
+
+me falta para hacerlo en serio: un router o balanceador delante, y observabilidad (errores y
+latencia por version) para decidir cuando volver atras, que es lo del tp9.
+
+feature flags los usaria para desacoplar deploy de release: por ejemplo subir apagada una
+estadistica nueva y prenderla primero para mi usuario.
+
+mi rollback hoy, paso a paso (lo hice de verdad):
+1. veo en Deployments → production cual fue el ultimo deploy bueno (o el tag de la release
+   anterior: v6.0.0 = 234eac3).
+2. vuelvo a correr SOLO el job deploy-prod de la corrida de ese commit (no re-run all jobs). pide
+   aprobacion igual y despliega su propio commit con el &ref. otra forma, sin github: llamar a los
+   dos hooks de prod con &ref=<ese commit>.
+3. el smoke de prod espera a que la api informe ese commit.
+
+lo probe: prod estaba en 1.1.0 (5450077) y lo volvi a v6.0.0. los hooks se dispararon a las
+18:17:15 y la api de prod contesto con 234eac3 a las 18:18:09. en render → deploys: api-prod
+50 s y front-prod 26,7 s. el rollback tarda alrededor de un minuto desde que se dispara (mas lo
+que tarde yo en aprobar). es la metrica dora de tiempo de recuperacion.
+
+lo que el rollback de codigo NO deshace: los datos. si un deploy hubiera corrido una migracion que
+borra una columna, volver el codigo no la trae de vuelta. para eso haria falta un backup de neon
+antes de cada migracion, o migraciones que nunca borren en el mismo deploy.
+
+render tiene un boton de rollback propio, pero no lo uso: vuelve atras sin pasar por mi pipeline ni
+por la aprobacion.
+
+12) como comprobe que cada entorno usa su propia base
+
+cree mi cuenta desde el front de qa y aparecio en app_qa (select en "Usuarios") y no en app_prod.
+y [COMPLETAR: la prueba de "SOY PROD": un dato creado solo en app_prod desde el sql editor de neon,
+que aparece en la url de prod y no en la de qa].
+
+13) problemas encontrados
+
+- la primera publicacion fallo con permission_denied: write_package. los paquetes
+  historialcancha-backend y -frontend ya existian porque los habia subido a mano en el tp2, con mi
+  usuario, y no estaban conectados al repo. el pipeline no entra con mi usuario, entra con el
+  GITHUB_TOKEN, que solo puede escribir en paquetes conectados a este repo. lo resolvi en cada
+  paquete (package settings → manage actions access → el repo con rol write) y volvi a correr solo
+  los jobs que fallaron. no quedo nada a medias: el paso que fallo era el ultimo.
+- el nombre de la imagen: github.repository trae mayusculas (NicolasBono/Historialcancha) y ghcr
+  las rechaza. lo escribi a mano en minusculas.
+- el health decia baseDeDatos: error con la base andando (los 600 ms, punto 8).
+- el smoke daba verde contra la version vieja (punto 7). lo arregle con el commit en el health.
+- un secret cargado como variable: el hook del front de qa lo puse en "environment variables" (se
+  ve en texto claro y el job no lo encuentra). lo borre y lo cargue como secret.
+- git bash cambia las rutas que empiezan con / (docker exec ... /etc/nginx/...) y les pega
+  C:/Program Files/Git adelante. se evita con MSYS_NO_PATHCONV=1.
+
+14) uso de ia en este tp
+
+[COMPLETAR con tus palabras: que hizo la ia (escribio los cambios del ci.yml, la plantilla de
+nginx, el job de qa y de prod y el smoke; reviso la app contra la guia y encontro que mi health
+responde 200 con la base caida y que me faltaban variables; diagnostico el permission_denied y el
+timeout del health; armo este borrador) y que hice yo (las cuentas y servicios de render y neon,
+los environments y secrets, los merges, las aprobaciones y los rechazos, la prueba de soy prod).]
