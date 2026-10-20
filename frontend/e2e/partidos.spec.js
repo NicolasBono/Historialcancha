@@ -19,6 +19,11 @@ test.beforeEach(async ({ page }) => {
   await login.getByLabel('Contraseña').fill(USUARIO.contrasena)
   await login.getByRole('button', { name: 'Ingresar' }).click()
   await expect(page.getByRole('heading', { name: 'Mi historial', exact: true })).toBeVisible()
+  // El título está en el HTML y aparece antes de que cargue el JavaScript. Si el test
+  // toca «Guardar» antes, el navegador manda el formulario solo, recarga la página y
+  // no se guarda nada (pasó contra Render, que es más lento que el compose local).
+  // El contador lo pinta el script cuando ya enganchó el formulario: se espera eso.
+  await expect(page.locator('#contador')).toHaveText(/\d+ partidos?/)
   // El borrado pide confirmación con confirm(): se acepta como lo haría la persona.
   page.on('dialog', dialogo => dialogo.accept())
 })
