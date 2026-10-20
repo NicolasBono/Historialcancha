@@ -58,6 +58,13 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
+# El commit del que salió esta imagen, horneado adentro: el pipeline lo pasa con
+# build-args y /api/health lo devuelve. Así se puede comprobar desde afuera qué
+# imagen está corriendo un entorno. Va al final para no invalidar el cache de
+# las capas de arriba; en un build local sin el argumento queda "desconocido".
+ARG COMMIT=desconocido
+ENV App__Commit=$COMMIT
+
 # Usuario sin privilegios que ya trae la imagen de .NET. Si alguien logra ejecutar
 # algo acá adentro, no lo hace como root.
 USER app

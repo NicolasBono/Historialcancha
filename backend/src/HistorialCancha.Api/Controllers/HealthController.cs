@@ -39,10 +39,10 @@ public class HealthController : ControllerBase
         {
             status = "ok",
             version = _configuracion["App:Version"] ?? "desconocida",
-            // El commit que está corriendo. Render lo inyecta en RENDER_GIT_COMMIT en cada
-            // deploy; el smoke lo compara con el commit que mandó a desplegar, así no da
-            // verde contra la versión anterior mientras Render todavía construye.
-            commit = _configuracion["RENDER_GIT_COMMIT"] ?? "desconocido",
+            // El commit del que salió la imagen que está corriendo: viene horneado en la
+            // imagen (App__Commit, ver el Dockerfile). El smoke lo compara con el commit
+            // que mandó a desplegar, así no da verde contra la versión anterior.
+            commit = _configuracion["App:Commit"] ?? "desconocido",
             entorno = _entorno.EnvironmentName,
             baseDeDatos = baseOk ? "ok" : "error",
             miEquipo = _opciones.MiEquipo
