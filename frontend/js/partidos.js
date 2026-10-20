@@ -79,7 +79,7 @@ function leerFormulario() {
 
   return {
     fecha: valor("fecha"),
-    rival: valor("rival"),
+    nombreRival: valor("rival"),
     torneo: valor("torneo"),
     condicion: valor("condicion"),
     estadio: valor("estadio") || null,
