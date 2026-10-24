@@ -36,6 +36,10 @@ public class ManejadorDeErrores
         {
             _log.LogError(ex, "Error no controlado en {Metodo} {Ruta}",
                 contexto.Request.Method, contexto.Request.Path);
+            // Este catch se traga la excepción para devolver un 500 prolijo, así que el
+            // middleware de Sentry nunca la ve: se la mandamos a mano. Las reglas de negocio
+            // (400, arriba) no van: son respuestas esperadas, no fallas.
+            SentrySdk.CaptureException(ex);
             await EscribirAsync(contexto, StatusCodes.Status500InternalServerError,
                 new { error = "Ocurrió un error inesperado.", regla = "interno" });
         }

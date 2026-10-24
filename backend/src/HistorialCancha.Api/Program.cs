@@ -100,6 +100,17 @@ builder.Services.AddCors(opciones =>
         .WithHeaders("Content-Type", "Authorization"));
 });
 
+// Sentry: errores, tiempos por operación y uso, vistos desde adentro de la app. El DSN llega
+// por el entorno (SENTRY_DSN) y sólo está cargado en PROD: sin él la librería queda apagada y
+// la app anda igual (en la máquina, en los tests, en QA). Release = el commit horneado en la
+// imagen, así cada error dice de qué versión salió.
+builder.WebHost.UseSentry(o =>
+{
+    o.Dsn = builder.Configuration["SENTRY_DSN"] ?? "";
+    o.Release = builder.Configuration["App:Commit"];
+    o.TracesSampleRate = 1.0;   // medir todos los pedidos: el tráfico es chico
+});
+
 var app = builder.Build();
 
 // --- Pipeline ---
