@@ -38,3 +38,14 @@ frontend-coverage/
 # Playwright: se generan en cada corrida
 playwright-report/
 test-results/
+
+# Terraform (TP8). El estado tiene contraseñas en texto plano: jamás se versiona.
+# El .terraform.lock.hcl SÍ se commitea (fija versión y hash de cada provider).
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+*.tfplan
+
+# Salida de cada corrida de Playwright (TP7).
+frontend/test-results/
