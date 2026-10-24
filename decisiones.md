@@ -735,3 +735,56 @@ viejo y del test flaky, este borrador) y que hiciste vos (el cambio de fuente de
 render, los secrets, los merges, las aprobaciones, mirar el reporte y la traza). y como lo
 verificaste: tenes que poder explicar que verifica cada test, contra que entorno corre y que pasa
 si falla.]
+
+## TP8 - Infraestructura como codigo
+
+declare un entorno nuevo, preprod (base + api + front), en infra/. no existe hasta que corro
+terraform apply y desaparece con terraform destroy. qa y prod no se tocaron: siguen siendo los que
+clickee en el tp6. pr #42 (infra/ en main) y release v8.0.0.
+
+1) riel y versiones
+
+riel canonico: terraform (v1.16.6, instalado con winget) contra neon y render, los mismos
+proveedores del tp6. providers fijados con version exacta y el .terraform.lock.hcl commiteado:
+- kislerdm/neon 0.18.0: proyecto propio historialcancha-preprod (para poder destruirlo entero sin
+  rozar el de qa y prod), rol y base app_preprod, en sao paulo como mi base de siempre.
+- render-oss/render 1.9.1: historialcancha-api-preprod y historialcancha-front-preprod, plan free,
+  virginia, con la imagen de v7.0.0 (sha-575a5a1..., la que corre en prod).
+- hashicorp/random 3.7.2: genera la clave jwt (mi api no arranca sin una de 32+ caracteres).
+el estado queda en infra/terraform.tfstate, en mi maquina, ignorado por git: adentro estan la
+contrasena del rol y la cadena de conexion en texto plano. las llaves (NEON_API_KEY,
+RENDER_API_KEY, RENDER_OWNER_ID) las leen los providers del entorno, no estan en ningun .tf.
+lo que se deriva y no se copia: la cadena de conexion se arma con el host, la base, el rol y la
+contrasena que devuelve neon; la BACKEND_URL del front sale de la url de su propia api.
+
+2) problemas y como los resolvi
+
+- neon respondio "org_id is required" con mi personal api key: mi cuenta vive dentro de una
+  organizacion. agregue org_id al neon_project (la guia no lo menciona).
+- mi api pide mas variables que la app de la guia: ConnectionStrings__HistorialCancha (no
+  __Default), Jwt__Key, App__MiEquipo y un origen cors. la clave jwt la genera terraform (nadie
+  la escribe ni la copia; cambia en cada recreacion, y en preprod no importa).
+- el origen cors no podia salir de la url del front: el front ya depende de la api (BACKEND_URL)
+  y terraform no acepta el ciclo. lo arme con el nombre del front
+  (https://historialcancha-front-preprod.onrender.com). no pasa nada si no coincide: el navegador
+  llama a /api por el nginx del front, desde el mismo origen, y no usa cors.
+- la guia prueba /health y /api/tareas; en mi app es /api/health (mirando "baseDeDatos":"ok" y el
+  commit) y los datos piden login: probe registro, login y /api/partidos pasando por el front, asi
+  queda probado tambien que el front habla con SU api.
+- lo no medido por la catedra, medido aca: al recrear, render devolvio las mismas urls (sin
+  sufijo); neon creo un proyecto nuevo con otro host, y no importo porque la cadena se deriva. la
+  base nace vacia y mi api corre las migraciones al arrancar: me pude registrar de nuevo con el
+  mismo dni.
+- el plan del destroy dice "6 to destroy" y no 5 como la guia: se suma la clave jwt.
+
+[COMPLETAR si queres: algo que te haya llamado la atencion de leer el plan, del drift (borrar
+app_preprod y ver que vuelve; la base_intrusa y neondb que el plan no ve) o del orden del destroy
+(front, api, base, rol, proyecto).]
+
+3) uso de ia en este tp
+
+[COMPLETAR con tus palabras: que hizo la ia (el hcl de infra/, adaptar la guia a mi app, correr
+init/plan/apply/destroy, las verificaciones por api de que qa y prod seguian intactos, el commit y
+el pr, este borrador) y que hiciste vos (crear las llaves, borrar app_preprod y crear/borrar la
+base_intrusa en la consola de neon, mirar el estado y el front, el merge, la aprobacion de prod).
+y como lo verificaste: tenes que poder leer un plan en voz alta y decir que hace cada accion.]
