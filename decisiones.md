@@ -788,3 +788,74 @@ init/plan/apply/destroy, las verificaciones por api de que qa y prod seguian int
 el pr, este borrador) y que hiciste vos (crear las llaves, borrar app_preprod y crear/borrar la
 base_intrusa en la consola de neon, mirar el estado y el front, el merge, la aprobacion de prod).
 y como lo verificaste: tenes que poder leer un plan en voz alta y decir que hace cada accion.]
+
+## TP9 - DevSecOps + observabilidad
+
+lo que quedo: dependabot en los 3 ecosistemas (pr #43), un pr de dependabot mergeado (#48), codeql
+y push protection activos, un monitor de uptimerobot sobre el health de prod (pausado), sentry en
+el back y en el front (pr #52, el endpoint de prueba se saco en el #54), una tarjeta en el tablero
+nacida de un dato de sentry, y la release v9.0.0 sobre 45663a0 (el commit que corre en prod).
+
+1) el pr de dependabot que mergee y por que me anime
+
+el #48: Microsoft.AspNetCore.OpenApi de 9.0.15 a 9.0.21. es un patch (semver): mismo major, sigue
+en .net 9 como el resto de mi app. toca solo el .csproj de la api y las notas de la version son de
+mantenimiento (versiones, arreglos de dependencias de build), sin cambios que rompan. me anime
+porque mi cadena lo prueba entero: el ci del pr compila y corre los tests con el umbral, y al
+mergear paso por qa, integracion (4 pruebas) y e2e (3 pruebas) antes de que yo aprobara prod.
+ese verde es lo que me deja mergear en minutos.
+dependabot abrio 8 prs apenas llego el dependabot.yml a main. no mergee los otros: Identity.Core 10
+es de .net 10 (mi app es .net 9), coverlet y Test.Sdk suben de major y pueden mover la cobertura del
+gate, y las actions v6 a v7 tambien son major. quedan abiertos: no tocan main ni prod.
+[COMPLETAR si queres: algo tuyo sobre por que elegiste ese y no otro.]
+
+2) cuanto tardo el monitor, y mi operacion mas usada y la mas lenta
+
+- antes de crear el monitor medi el health con HEAD (que es lo que usa uptimerobot gratis): prod
+  contestaba 405. le agregue [HttpHead] al health y una prueba de integracion que lo cuida, y lo
+  lleve a prod antes de crear el monitor. si no, el monitor marcaba caida con la api viva.
+- caida provocada: suspend de la api de prod a las 19:05:53 → mail de DOWN a las 19:08, o sea ~2
+  minutos (el maximo es 5, el intervalo del monitor). reanude a las 19:10:45 → mail de UP a las
+  19:14. el historial del monitor dice "1 incident, 5m 5s down". despues lo pause: despierto todo
+  el mes se come las 750 horas que comparten mis servicios gratis.
+- lo que el monitor NO mira: mi health da 200 aunque la base este caida (el estado de la base va
+  en el campo baseDeDatos). el monitor por palabra clave, que lo veria, es pago en uptimerobot.
+  eso lo ve sentry (los errores) o un usuario.
+- en sentry, despues de usar prod unos minutos: la mas lenta es la autenticacion (POST
+  /api/auth/...), p50 1,11 s y p95 2,15 s, y fallo la mitad de las veces. la mas usada es GET
+  /api/partidos (se pide en cada carga de pagina), p95 1,11 s. con eso abri la tarjeta "Perf: la
+  autenticacion tarda 2,15 s en P95" en el tablero, con dos hipotesis: la base de neon dormida en
+  el primer pedido, o el costo del hash de la contrasena.
+  [COMPLETAR: confirma en sentry los nombres completos de las operaciones (en la tabla se veian
+  cortados) y cual es la mas usada.]
+
+3) problemas y como los resolvi
+
+- el health contestaba 405 a HEAD (lo de arriba).
+- sentry no veia mis errores: mi api tiene un ManejadorDeErrores que atrapa toda excepcion para
+  devolver un 500 prolijo, asi que el middleware de sentry nunca se enteraba. le agregue
+  SentrySdk.CaptureException en ese catch. los 400 de reglas de negocio no se mandan: son
+  respuestas esperadas, no fallas. con eso aparecio "Falla de prueba del TP9" en issues.
+- mi front no tiene empaquetador (nfr1), asi que no podia instalar sentry por npm como la guia.
+  lo cargo desde el cdn de sentry con version fijada (11.9.0) e integrity (si el archivo cambia,
+  el navegador no lo ejecuta), y un js/observabilidad.js hace el init en las 3 paginas. contra:
+  dependabot no vigila esa version.
+- el dsn del back va como variable SENTRY_DSN solo en la api de prod. en render la guarde con
+  "save only": en settings los servicios de prod tienen una imagen vieja, y "save and deploy" la
+  habria desplegado. verifique por la api de render que no se disparo ningun deploy. el dsn del
+  front va escrito en el codigo porque solo sirve para enviar datos, no para leerlos.
+- codeql encontro 2 cosas que deje analizadas y sin arreglar: (a) el log de errores escribe la
+  ruta que manda el usuario (log injection, owasp a09): alguien podria meter saltos de linea y
+  falsear lineas del log; se arregla saneando la ruta. (b) 4 jobs del ci.yml no declaran
+  permisos (minimo privilegio, owasp a01); se arregla con permissions: contents: read.
+- el token de gh no tenia permiso sobre projects: la tarjeta la cree a mano.
+
+4) uso de ia en este tp
+
+[COMPLETAR con tus palabras: que hizo la ia (adaptar la guia a mi app, medir el HEAD, el
+dependabot.yml, el arreglo del health y su prueba, analizar el pr de dependabot, el codigo de
+sentry en back y front, las verificaciones de cada corrida antes de aprobar, el tag, este
+borrador) y que hiciste vos (prender dependabot y codeql en settings, el monitor, el suspend y el
+resume en render, la cuenta y los proyectos de sentry, el SENTRY_DSN en render, usar la app de
+prod, la tarjeta, los merges y las aprobaciones). y como lo verificaste: tenes que poder mostrar
+cada pieza funcionando y decir que mira y que no mira.]
