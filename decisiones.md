@@ -1,5 +1,29 @@
 # Decisiones
 
+## Enlaces del TP7
+
+paquetes publicos del registry (se bajan sin credenciales). la version que esta en prod (v7.0.0):
+- backend: https://github.com/users/NicolasBono/packages/container/package/historialcancha-backend
+  `docker pull ghcr.io/nicolasbono/historialcancha-backend:sha-575a5a166c4444d5e4fe55c02d5b6a8a62c3579a`
+- frontend: https://github.com/users/NicolasBono/packages/container/package/historialcancha-frontend
+  `docker pull ghcr.io/nicolasbono/historialcancha-frontend:sha-575a5a166c4444d5e4fe55c02d5b6a8a62c3579a`
+
+la corrida donde la integracion quedo VERDE y la e2e ROJA (el rojo provocado):
+- el commit que rompio la app (el front manda nombreRival en vez de rival):
+  https://github.com/NicolasBono/Historialcancha/commit/d8960ab (PR #39)
+- la corrida: https://github.com/NicolasBono/Historialcancha/actions/runs/39509620502
+- reporte de integracion, en verde: https://github.com/NicolasBono/Historialcancha/actions/runs/39509620502/artifacts/12305003376
+- reporte e2e, en rojo: https://github.com/NicolasBono/Historialcancha/actions/runs/39509620502/artifacts/12305033696
+  (los reportes vencen a los 7 dias en github; tengo una copia local para mostrar en la defensa)
+
+la corrida completa en verde posterior, hasta prod:
+- https://github.com/NicolasBono/Historialcancha/actions/runs/39512864301
+- release: https://github.com/NicolasBono/Historialcancha/releases/tag/v7.0.0
+
+los entornos (vivos hasta la defensa; el primer pedido tarda ~1 min si estaban dormidos):
+- QA: https://historialcancha-front-qa.onrender.com · api: https://historialcancha-api-qa.onrender.com/api/health
+- PROD: https://historialcancha-front-prod.onrender.com · api: https://historialcancha-api-prod.onrender.com/api/health
+
 ## Enlaces de este TP (TP6)
 
 los paquetes y las urls viven afuera del repo, por eso van aca.
@@ -544,3 +568,170 @@ nginx, el job de qa y de prod y el smoke; reviso la app contra la guia y encontr
 responde 200 con la base caida y que me faltaban variables; diagnostico el permission_denied y el
 timeout del health; armo este borrador) y que hice yo (las cuentas y servicios de render y neon,
 los environments y secrets, los merges, las aprobaciones y los rechazos, la prueba de soy prod).]
+
+## TP7 - Contenedores en el pipeline + integracion y e2e
+
+los enlaces de este tp estan arriba de todo, en "Enlaces del TP7".
+
+1) build once, deploy many: que problema del tp6 resuelve
+
+en el tp6 render reconstruia mi app desde el repo en cada deploy. lo que corria en qa y en prod no
+era la imagen que pasaron mis tests: eran dos builds mas del mismo commit, a otra hora, que podian
+salir distintos (una imagen base como nginx:alpine o aspnet:9.0 que se actualizo, una dependencia
+resuelta de nuevo). ahora el pipeline construye la imagen UNA vez, la publica en ghcr.io etiquetada
+con el commit, y los cuatro servicios de render la ejecutan tal cual (fuente "Existing Image").
+qa y prod corren el mismo binario. promover es decirle a prod "ejecuta sha-<commit>", la misma que
+qa ya verifico; y volver atras es ejecutar una imagen anterior, que sigue en el registry.
+
+2) mi estrategia de etiquetas
+
+- sha-<commit completo> en el registry: dice de que commit salio cada imagen. es la que manda cada
+  deploy en el imgURL del hook, a qa y a prod. son los 40 caracteres: el registry no completa como
+  git (con el corto el hook contesta 400 "unable to fetch image").
+- v7.0.0 en git: es el nombre de la version que se que anduvo en prod. el tag no esta en el
+  registry: apunta a un commit, y ese commit me dice que imagen es.
+- no publico latest porque es un puntero que se mueve: no dice que contenido hay detras, y un
+  deploy que lo nombrara ejecutaria "lo ultimo que se publico", haya pasado las pruebas o no.
+- lo que no garantiza la etiqueta: se puede volver a publicar (re-correr la corrida de un commit
+  publica otra vez sha-<ese commit>). lo inmutable es el digest (sha256:...).
+- en render configure los cuatro servicios con la imagen de un merge viejo (sha-5450077...). esa
+  NO es la que corre: render pide una imagen para cambiar la fuente, pero la que corre la elige
+  cada deploy del pipeline con su imgURL (render solo exige que coincidan el registry y el nombre;
+  la etiqueta puede cambiar). por eso nunca uso "manual deploy": desplegaria la de la
+  configuracion, la vieja, y prod volveria para atras sin avisar.
+- no cree servicios nuevos: les cambie la fuente a los cuatro, asi conserve las urls, las
+  variables, los hooks y el historial.
+
+3) de la release a la imagen, en un paso
+
+`git rev-list -n1 v7.0.0` da 575a5a1..., y en mis dos paquetes esta la imagen sha-575a5a1...
+(backend y frontend, la misma etiqueta). el tag lo puse sobre el commit que dice Deployments de
+github para production, no sobre el ultimo de main.
+
+4) como se comprueba desde afuera que un entorno ejecuta mi imagen
+
+- en render, en Events de cada servicio, el deploy dice "Triggered via Deploy Hook" y nombra la
+  imagen sha-<commit> de esa corrida (eso lo muestro en vivo: los events no son publicos).
+- y lo hice automatico para la api: el commit va horneado adentro de la imagen (un ARG COMMIT en
+  el dockerfile que el pipeline le pasa con build-args, y queda en App__Commit) y /api/health lo
+  devuelve. el smoke espera hasta que el commit del health sea el de la corrida. esto lo necesitaba
+  porque en el tp6 el health leia el commit de RENDER_GIT_COMMIT, y con una imagen render ya no
+  construye desde git y esa variable deja de existir.
+- lo que no prueba el smoke: la version del FRONT. nginx no informa su commit. y eso me paso de
+  verdad (punto 9).
+
+5) que pruebas elegi en cada suite
+
+integracion (frontend/e2e/api.spec.js, playwright con el fixture request: sin navegador, contra la
+api de qa con su base de verdad):
+- alta + get que lo encuentra + borrado + get que ya no lo encuentra.
+- un partido sin rival → 400 con la regla rival-requerido, y no se creo nada.
+- la tercera: dos partidos el mismo dia → el segundo da 400 fecha-duplicada y queda uno solo. la
+  elegi porque es una regla que depende de lo que YA HAY en la base: el dominio recibe "ya existe
+  otro ese dia" leido de postgres. un unitario con un doble contesta lo que yo le diga.
+
+e2e (frontend/e2e/partidos.spec.js, un chromium de verdad contra el front de qa):
+- cargar un partido → aparece en el historial → borrarlo → ya no esta.
+- un partido con fecha futura → el usuario ve el error de la api → no se cargo nada.
+- la tercera: el partido cargado sigue ahi al recargar la pagina. es lo que el hincha hace todos
+  los dias (cargar el partido y volver a verlo), y si se rompe es lo primero que me escriben.
+
+todas entran como una persona (login por la pantalla), buscan por label y rol (getByLabel,
+getByRole), afirman sobre su propio dato (un rival con la hora adentro, que no se repite) y borran
+lo que crean. para poder borrar le agregue al front un aria-label "Borrar partido contra X" en cada
+fila: sin eso no habia forma accesible de encontrar el boton.
+
+el usuario de prueba es FIJO por entorno (no uno nuevo por corrida): mi app no tiene forma de
+borrar usuarios, asi que crear uno por corrida llenaria qa de cuentas. si no existe, la primera
+corrida lo registra. sus credenciales van en secrets del repo (E2E_DNI y E2E_CONTRASENA) y no en el
+environment qa: los jobs de prueba no despliegan, y con environment: qa cada corrida sumaria
+"deploys a qa" falsos al historial de Deployments.
+
+que NO puse: las reglas una por una (goles negativos, nota fuera de rango, rival = mi equipo)
+estan en los unitarios del tp5, que corren en milisegundos. arriba van pocas y caras: lo que solo
+se ve con la base de verdad (integracion) o con la pantalla de verdad (e2e).
+
+6) que pruebo en integracion y que en e2e: el par verde/rojo
+
+la integracion le habla a la api directo, asi que prueba que la api y la base se entienden. la e2e
+prueba que el front use bien esa api. por eso juntas dan un diagnostico:
+
+| integracion | e2e | que se rompio |
+|---|---|---|
+| verde | rojo | el front |
+| rojo | no corre | la api o la base |
+| verde | verde | nada de lo que estas dos ven |
+
+mi rotura: cambie en el front el nombre del campo que manda el alta (rival → nombreRival), sin
+tocar e2e/. compilaba, los unitarios pasaban (no prueban ese armado) y el smoke dio verde. en la
+corrida, integracion VERDE (3/3) y e2e ROJA (3/3), y deploy-prod ni pidio aprobacion. es la fila 1:
+la api esta sana (le hable con el nombre correcto y guardo y borro), el que no la usa bien es el
+front. lo confirme con el reporte, no con el codigo: en la traza, pestaña network, el POST manda
+nombreRival y la api contesta 400 "El rival es obligatorio". si hubiera roto la api, la integracion
+se ponia roja y la e2e no llegaba a correr (su needs no se cumple).
+
+un cambio que solo atrapa la integracion: mi dominio no valida el largo del rival, pero la columna
+tiene un maximo de 80 caracteres. un rival de 100 pasa el unitario (el doble acepta cualquier cosa)
+y la base de verdad lo rechaza: la api contesta 500. [COMPLETAR: si lo agregas como prueba, o si lo
+dejas anotado como deuda]
+
+7) por que mi integracion es la amplia y no la estrecha
+
+la amplia le pega a la api ya desplegada en qa, con su base de verdad. la estrecha arma la api
+adentro del pipeline (WebApplicationFactory) contra un postgres descartable del job.
+- gana: un decimo de configuracion (ya tengo qa corriendo la imagen exacta de la corrida) y ademas
+  prueba que el deploy quedo bien.
+- pierde: llega mas tarde (necesita el deploy), depende de que qa este despierto, y comparte la base
+  de qa con todas las corridas (por eso cada prueba borra lo suyo).
+
+8) cold start y tests flaky
+
+render duerme los servicios. el smoke de deploy-qa ya despierta qa antes de las pruebas, y la config
+de playwright tiene topes largos (60 s por test, 15 s por asercion), un reintento y nada de sleep:
+playwright espera solo a que aparezca lo que busca. un test flaky es el que a veces pasa y a veces
+no: es peor que no tenerlo, porque acostumbra a ignorar el rojo. con el reintento, un test que pasa
+recien en el segundo intento sale marcado "flaky" con la corrida verde, por eso el reporte se mira
+igual.
+
+y tuve uno de verdad (punto 9): el test tocaba "Guardar" antes de que la pagina terminara de cargar
+su javascript. lo arregle esperando un estado de la app (el contador de partidos, que el script
+pinta cuando ya engancho el formulario), no con un sleep.
+
+9) problemas encontrados
+
+- el primer deploy a mano con el hook dio 400 "docker environment does not support image URLs":
+  todavia no le habia cambiado la fuente a ese servicio.
+- les cargue a los cuatro servicios la imagen -backend. el front de prod rechazo el deploy con 400
+  (render no deja cambiar el nombre de la imagen por el hook, solo la etiqueta), y la api de prod ya
+  se habia desplegado: prod quedo un rato con la api nueva y el front viejo. lo corregi poniendo
+  -frontend en los fronts y re-corriendo solo el job deploy-prod (pidio aprobacion de nuevo).
+- `npm i -D @playwright/test` en windows borro del package-lock los binarios de rolldown (el mismo
+  bug del tp5) y vitest no arrancaba. regenere el lock de cero; de paso se fue una vulnerabilidad
+  de vite.
+- la corrida del arreglo (https://github.com/NicolasBono/Historialcancha/actions/runs/39511147445)
+  tambien quedo roja, y no era mi codigo. el reporte mostraba "El rival es obligatorio", el error de
+  la version ROTA: el front de qa todavia no habia terminado de desplegarse. el smoke solo espera el
+  commit de la api; el front no informa el suyo, asi que la e2e arranco contra un front viejo. lo
+  detecte con el reporte y con los events, y re-corri solo el job e2e (valido porque qa ya tenia la
+  imagen de ESA corrida). al re-correr aparecio el test flaky del punto 8 y lo arregle en otro PR.
+  esa corrida la deje en rojo a la vista a proposito. como lo cerraria: hornear el commit tambien
+  en el front (un version.txt) y que el smoke espere los dos.
+- limite conocido: qa es uno solo. con dos merges seguidos, la corrida B puede redesplegar qa
+  mientras las pruebas de A lo usan. lo reconoceria mirando en events que imagen corre qa y a que
+  hora corrio el deploy-qa de B; la corrida A se rechaza y vale la B. por eso hago un merge por vez.
+
+10) la misma imagen del front en qa y en prod
+
+la direccion del backend no esta adentro de la imagen: nginx la lee del entorno al arrancar (la
+plantilla del tp6). en render cada front tiene su BACKEND_URL (la api de SU entorno) y
+DNS_RESOLVER. adentro de la imagen queda el sitio y los defaults de compose. por eso la misma
+imagen sha-<commit> del front corre en qa y en prod y cada una habla con su api.
+
+11) uso de ia en este tp
+
+[COMPLETAR con tus palabras: que hizo la ia (los cambios del ci.yml con imgURL y los jobs de
+pruebas, el commit horneado en la imagen, las dos suites de playwright, el diagnostico del front
+viejo y del test flaky, este borrador) y que hiciste vos (el cambio de fuente de los 4 servicios en
+render, los secrets, los merges, las aprobaciones, mirar el reporte y la traza). y como lo
+verificaste: tenes que poder explicar que verifica cada test, contra que entorno corre y que pasa
+si falla.]
