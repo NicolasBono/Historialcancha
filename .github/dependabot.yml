@@ -1,0 +1,19 @@
+# Dependabot: propone cada semana las versiones nuevas de las dependencias y, con las
+# actualizaciones de seguridad prendidas en Settings, abre solo el PR que arregla una
+# vulnerabilidad publicada. Cada PR pasa por el mismo CI que cualquier otro.
+version: 2
+updates:
+  - package-ecosystem: "nuget"            # backend: el escaneo no es recursivo, y el .sln está acá
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"              # frontend: vitest y Playwright
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"   # las actions del pipeline también son dependencias
+    directory: "/"
+    schedule:
+      interval: "weekly"

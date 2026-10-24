@@ -29,8 +29,11 @@ public class HealthController : ControllerBase
     /// <summary>
     /// Estado del servicio. Responde 200 aunque la base esté caída:
     /// el campo baseDeDatos es el que informa el problema.
+    /// También contesta HEAD (la misma respuesta, sin cuerpo): es lo que usa el monitor
+    /// externo en su plan gratuito, y un 405 lo haría marcar caída con la api viva.
     /// </summary>
     [HttpGet]
+    [HttpHead]
     public async Task<IActionResult> Get(CancellationToken ct)
     {
         var baseOk = await _chequeo.RespondeAsync(ct);

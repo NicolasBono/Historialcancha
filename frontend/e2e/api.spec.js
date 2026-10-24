@@ -76,3 +76,8 @@ test('un segundo partido el mismo día lo rechaza la api, y queda uno solo', asy
     expect(borrado.status()).toBe(204)
   }
 })
+
+test('el health contesta HEAD, que es lo que usa el monitor externo', async ({ request }) => {
+  const r = await request.head(`${API}/api/health`)
+  expect(r.status()).toBe(200)                             // con 405 el monitor marca caída
+})
