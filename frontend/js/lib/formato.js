@@ -86,3 +86,16 @@ export function clasificarMarcador(aFavor, enContra) {
   if (diferencia <= -4) return 'paliza';
   return 'derrota';
 }
+
+/**
+ * Pone en palabras qué tan buena es una efectividad, para poder colorear la celda
+ * en vez de dejar al hincha interpretando un porcentaje suelto.
+ * @param {number} porcentaje efectividad entre 0 y 100
+ * @returns {string} la etiqueta que va como data-attribute de la celda
+ */
+export function etiquetaDeEfectividad(porcentaje) {
+  if (porcentaje >= 70) return 'excelente';
+  if (porcentaje >= 50) return 'buena';
+  if (porcentaje >= 30) return 'floja';
+  return 'mala';
+}

@@ -11,6 +11,7 @@ import {
   conSigno,
   describirRacha,
   efectividad,
+  etiquetaDeEfectividad,
   formatearFecha
 } from "./lib/formato.js";
 
@@ -27,7 +28,7 @@ function celdasDeRecord(r) {
     <td>${r.golesAFavor}</td>
     <td>${r.golesEnContra}</td>
     <td>${conSigno(r.diferenciaDeGol)}</td>
-    <td class="efec">${efectividad(r)}</td>`;
+    <td class="efec" data-nivel="${etiquetaDeEfectividad(r.efectividad)}">${efectividad(r)}</td>`;
 }
 
 /* ---------- récord global ---------- */
