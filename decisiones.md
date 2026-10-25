@@ -137,43 +137,7 @@ sobre esos partidos. y si una calculadora miente, miente toda la pantalla de est
 quedaron 30 metodos (44 casos, porque los Theory corren uno por dato) sobre 9 reglas distintas en el
 back, y 14 bloques (35 casos) en el front. el minimo era 8 sobre 4 reglas, y 4 en el front.
 
-2) el test con mock, y si tuve que refactorizar
-
-en el backend NO tuve que refactorizar. el dominio ya declaraba IPartidoRepository y el
-PartidosController ya la recibia por constructor desde el tp2, asi que moq me fabrico el doble sin
-tocar una coma de produccion. el test con mock verifica una colaboracion, no una cuenta: que al
-crear un partido el controller le pregunte a la base si ya habia uno esa fecha, y que recien
-despues mande a guardar. el que mas me gusta verifica una interaccion que NO ocurrio: con fecha
-futura, AgregarAsync tiene que llamarse Times.Never. eso prueba que la validacion corre ANTES de
-tocar la base; un controller que guardara primero dejaria basura y ningun test de valor devuelto
-se daria cuenta.
-
-en el frontend SI refactorice. tenia una busqueda de partido por id que llamaba sola a
-API.listarPartidos() adentro, asi que para probarla necesitaba la api levantada. la saque a
-js/lib/partidos-datos.js y le pase el lector por parametro: buscarPartidoPorId(id, listar). en
-produccion le entra el cliente real, en el test un vi.fn().
-
-3) el refactor grande del front, que fue lo que mas trabajo dio
-
-mi frontend era js puro con scripts clasicos, sin un solo export, y los archivos se hablaban por
-variables globales. vitest solo importa modulos es, asi que el problema no era instalar vitest: era
-que mi codigo no tenia por donde ser importado. tuve que migrar js/ a modulos es antes de escribir
-un solo test, y de paso separe la logica pura (js/lib/formato.js) de lo que depende del dom
-(js/lib/dom.js).
-
-4) el NFR1, que lo cambie
-
-tenia escrito en el prd que el frontend va sin bundlers y sin package.json. este tp me obliga a
-agregar uno para correr vitest. de todo lo que decia el NFR1 lo unico que se rompe es el
-package.json: los modulos es son javascript nativo, no un bundler. y la imagen no cambia en nada:
-lo verifique entrando al contenedor, adentro hay nada mas que css/, js/ y los html. vitest quedo
-como devDependency y nunca entra.
-
-o sea que lo que el NFR1 queria proteger, no meter complejidad en produccion, se sigue cumpliendo.
-lo que cambio es que aparecio un requisito nuevo que cuando lo escribi no estaba contemplado. la
-proxima escribiria los NFR diciendo en que entorno aplican: "sin package.json" prohibia una
-herramienta, y lo que yo queria proteger era el runtime.
-5) mi umbral
+2) mi umbral de coverage
 
 | | mide hoy | umbral |
 |---|---|---|
@@ -186,6 +150,10 @@ descargable: https://github.com/NicolasBono/Historialcancha/actions/runs/3739532
 puse esos umbrales porque quiero que me frenen si bajan, no que sean inalcanzables. los dos aplican
 sobre linea Y rama.
 
+cuando tenia solo los tests obligatorios la cobertura me daba un 20%, y con eso no me
+parecia que el codigo estuviera testeado: quedaban afuera casi todas las reglas. por eso segui
+escribiendo tests hasta pasar el umbral, en vez de bajar el umbral para que entrara lo que tenia.
+
 son distintos a proposito porque miden cosas distintas: el del front cubre solo la logica pura de
 js/lib, y el del back incluye los controllers, que son adaptadores http. forzarlos a ser iguales
 seria copiar un numero sin pensarlo.
@@ -197,7 +165,7 @@ total diera 64%.
 para subir el back a 75 tendria que testear los controllers, que hoy no tienen tests: eso pide
 tests de integracion con la api levantada, que es el tp7.
 
-6) que deje afuera de la cuenta
+3) que deje afuera de la cuenta de cobertura
 
 backend:
 - toda la capa Infrastructure. las migraciones las genero entity framework, no yo: testearlas seria
@@ -218,7 +186,7 @@ atributo lo respetan tanto coverlet (el que aplica el umbral) como reportgenerat
 reporte). asi el numero que frena y el que se muestra salen del mismo lugar y no se pueden
 desincronizar.
 
-7) por que un coverage alto no garantiza calidad (mi ejemplo)
+4) por que un coverage alto no garantiza calidad (mi ejemplo)
 
 un test que ejecuta el codigo sin comprobar nada suma cobertura y no verifica nada. para ver si los
 mios comprueban de verdad rompi 16 reglas a proposito, de a una, y mire si algun test se ponia
@@ -232,23 +200,7 @@ les habia puesto no distinguian. uno comparaba dos rivales donde el orden alfabe
 resultado que el desempate por gol, asi que el test pasaba igual con el desempate sacado. los
 arregle cambiando los datos. eso es exactamente lo que la cobertura no te dice.
 
-8) el ejercicio de la rama que faltaba
-
-la encontre en ValidadorPartido.cs linea 26, el if (string.IsNullOrWhiteSpace(partido.Torneo)). en
-el reporte sale en naranja: se ejecuto 38 veces pero siempre por el mismo camino, el if siempre dio
-falso, y las dos lineas del throw estan en rojo.
-
-me gusto porque muestra la diferencia entre las dos metricas: esa linea cuenta como linea CUBIERTA
-(se ejecuto 38 veces) y como rama DESCUBIERTA (solo uno de los dos caminos). por eso la de rama es
-la mas honesta.
-
-la entrada que la recorreria es un partido con el torneo vacio: Torneo = "" o "   ". y es
-alcanzable de verdad, porque el dto tiene Torneo nullable y el mapper lo convierte en string vacio.
-
-decidi NO agregar el test por ahora, y lo dejo anotado como deuda. el motivo honesto es que ya tengo
-el test hermano para el rival (RivalSinContenido_EsRechazado), asi que la regla ya esta probada en
-su forma, y el umbral ya se cumple. lo dejo registrado tal cual lo encontre en vez de taparlo.
-**9) el pull request bloqueado**
+5) el pull request bloqueado
 
 agregue una funcion al front, clasificarMarcador, que devuelve la etiqueta de cada marcador
 (goleada, victoria, empate sin goles, empate, derrota, paliza) y la enganche en la tabla de
@@ -278,7 +230,31 @@ la defensa: https://github.com/NicolasBono/Historialcancha/pull/29
 lo que mas me gusto de esto es que no habia ningun error. nada roto, todo compilaba, todos los tests
 pasaban, y el merge estaba bloqueado igual por un numero que elegi yo.
 
-10) herramientas que use
+6) si refactorice para poder mockear
+
+en el backend NO tuve que refactorizar. el dominio ya declaraba IPartidoRepository y el
+PartidosController ya la recibia por constructor desde el tp2, asi que moq me fabrico el doble sin
+tocar una coma de produccion. el test con mock verifica una colaboracion, no una cuenta: que al
+crear un partido el controller le pregunte a la base si ya habia uno esa fecha, y que recien
+despues mande a guardar. el que mas me gusta verifica una interaccion que NO ocurrio: con fecha
+futura, AgregarAsync tiene que llamarse Times.Never. eso prueba que la validacion corre ANTES de
+tocar la base; un controller que guardara primero dejaria basura y ningun test de valor devuelto
+se daria cuenta.
+
+en el frontend SI refactorice. tenia una busqueda de partido por id que llamaba sola a
+API.listarPartidos() adentro, asi que para probarla necesitaba la api levantada. la saque a
+js/lib/partidos-datos.js y le pase el lector por parametro: buscarPartidoPorId(id, listar). en
+produccion le entra el cliente real, en el test un vi.fn().
+
+ademas del refactor para el mock, tuve que hacer uno mas grande para que el front se pudiera testear en absoluto:
+
+mi frontend era js puro con scripts clasicos, sin un solo export, y los archivos se hablaban por
+variables globales. vitest solo importa modulos es, asi que el problema no era instalar vitest: era
+que mi codigo no tenia por donde ser importado. tuve que migrar js/ a modulos es antes de escribir
+un solo test, y de paso separe la logica pura (js/lib/formato.js) de lo que depende del dom
+(js/lib/dom.js).
+
+7) herramientas que use (mi front no es el stack de la catedra)
 
 | lo que se pedia | backend | frontend |
 |---|---|---|
@@ -292,7 +268,24 @@ pasaban, y el merge estaba bloqueado igual por un numero que elegi yo.
 el back es el stack de la catedra (.net + xunit). el front no: es js puro sin bundler, asi que
 vitest lo sume solo como herramienta de test.
 
-11) problemas encontrados
+8) el ejercicio del camino sin cubrir
+
+la encontre en ValidadorPartido.cs linea 26, el if (string.IsNullOrWhiteSpace(partido.Torneo)). en
+el reporte sale en naranja: se ejecuto 38 veces pero siempre por el mismo camino, el if siempre dio
+falso, y las dos lineas del throw estan en rojo.
+
+me gusto porque muestra la diferencia entre las dos metricas: esa linea cuenta como linea CUBIERTA
+(se ejecuto 38 veces) y como rama DESCUBIERTA (solo uno de los dos caminos). por eso la de rama es
+la mas honesta.
+
+la entrada que la recorreria es un partido con el torneo vacio: Torneo = "" o "   ". y es
+alcanzable de verdad, porque el dto tiene Torneo nullable y el mapper lo convierte en string vacio.
+
+decidi NO agregar el test por ahora, y lo dejo anotado como deuda. el motivo honesto es que ya tengo
+el test hermano para el rival (RivalSinContenido_EsRechazado), asi que la regla ya esta probada en
+su forma, y el umbral ya se cumple. lo dejo registrado tal cual lo encontre en vez de taparlo.
+
+9) problemas encontrados y como los resolvi
 
 - un bug que destapo el tp. al juntar la logica duplicada del front me encontre con que
   formatearFecha estaba escrita dos veces, en estadisticas.js y en partidos.js, y las dos versiones
@@ -319,15 +312,23 @@ vitest lo sume solo como herramienta de test.
   de seguridad pero es codigo de test en produccion, y nadie lo habia notado porque la imagen
   construia bien. ahora la etapa de build los borra.
 
+- el NFR1, que lo tuve que cambiar. tenia escrito en el prd que el frontend va sin bundlers y sin package.json. este tp me obliga a
+  agregar uno para correr vitest. de todo lo que decia el NFR1 lo unico que se rompe es el
+  package.json: los modulos es son javascript nativo, no un bundler. y la imagen no cambia en nada:
+  lo verifique entrando al contenedor, adentro hay nada mas que css/, js/ y los html. vitest quedo
+  como devDependency y nunca entra.
+  
+  o sea que lo que el NFR1 queria proteger, no meter complejidad en produccion, se sigue cumpliendo.
+  lo que cambio es que aparecio un requisito nuevo que cuando lo escribi no estaba contemplado. la
+  proxima escribiria los NFR diciendo en que entorno aplican: "sin package.json" prohibia una
+  herramienta, y lo que yo queria proteger era el runtime.
 
-12) uso de ia en este tp
+10) uso de ia en este tp
 
-lo que hizo la ia: me escribio los tests ya que fuimos haciendo los obligatorios y como era muy poco lo que cubria la ia escribio los que estan de mas tambien me midio la cobertura bajo distintos criterios de
-exclusion y me cablo la etapa de tests en los
-dockerfiles y los pasos del ci.yml. tambien me encontro cosas que yo no sabia que tenia: el bug de
-formatearFecha duplicada con comportamiento distinto, y que los .test.js se estaban copiando a la
-imagen de nginx.
-
+lo que hizo la ia: Escribió los tests. Arrancamos con los obligatorios(viendo en todo momento la logica y porque estabamos haciendo), y como cubrían poco también escribió los que están de más ya que con los obligatorios vi que cubria un 20% y como explique en el punto 2 que si tenia menos de ese porcentaje no me parecia que el codigo este testeado.
+Midió la cobertura con distintos criterios de exclusión, para comparar cuánto cambiaba el número.
+Cableó la etapa de tests en los dos Dockerfiles y los pasos del ci.yml.
+Encontró cosas que yo no sabía que tenía. Una fue el bug de formatearFecha, que estaba duplicada y se comportaba distinto en cada lugar. La otra, que los .test.js se estaban copiando a la imagen de nginx.
 
 Me ayudo a la hora de escribir el contenido de los pr y a subir las cosas al repo
 
@@ -335,25 +336,7 @@ Me ayudo a la hora de escribir el contenido de los pr y a subir las cosas al rep
 
 los enlaces de este tp (paquetes, corridas y urls) estan arriba de todo, en "Enlaces de este TP".
 
-1) que use
-
-| lo que se pedia | lo que use |
-|---|---|
-| registry | ghcr.io, con el GITHUB_TOKEN de cada corrida (ningun secret nuevo) |
-| entornos | dos environments de github: qa (sin reglas) y production (con required reviewer: yo) |
-| donde corre | render, 4 web services con docker: api y front, en qa y en prod. region virginia, plan free |
-| base de datos | neon, un proyecto con dos bases separadas: app_qa y app_prod |
-| quien dispara el deploy | mi pipeline, con el deploy hook de render + &ref=<commit>. auto-deploy en off en los 4 |
-| las tablas | las crea la app sola al arrancar (MigrateAsync de entity framework) |
-
-no use el postgres de render porque el gratis vence a los 30 dias, y neon es gratis permanente.
-
-los cinco puntos del contrato: dos entornos con su url (qa y prod), una base por entorno (app_qa y
-app_prod), front y back como contenedores a partir de mis dockerfiles (runtime docker en render), el
-deploy lo dispara el pipeline con el commit verificado (auto-deploy off), y prod detras de la
-aprobacion del environment production.
-
-2) por que el artefacto se publica solo con la verificacion en verde
+1) por que el artefacto se publica solo con la verificacion en verde
 
 el pipeline ahora deja algo: las dos imagenes en ghcr.io, etiquetadas con el commit que las produjo
 (sha-<commit>). que en el registry haya solo cosas verificadas no lo garantiza un control, lo
@@ -375,7 +358,7 @@ digest (sha256:...).
 el permiso de escribir paquetes lo declare adentro de cada job y no arriba de todo, porque arriba
 reemplaza el default de todos los jobs: asi solo tiene permiso el que publica (minimo privilegio).
 
-3) continuous delivery, no continuous deployment
+2) continuous delivery, no continuous deployment
 
 implemente continuous delivery: todo cambio verificado llega solo a QA y queda listo para prod,
 pero a prod lo sube una persona. no hice continuous deployment (sin humano) porque mi red de
@@ -383,7 +366,7 @@ seguridad no alcanza: el smoke solo prueba que la app contesta, no tengo monitor
 errores, y los tests de integracion con la api levantada recien llegan en el tp7. automatizar el
 ultimo paso con eso seria automatizar la propagacion de errores.
 
-4) la cadena: needs, if y environments
+3) la cadena: needs, if y environments
 
 build-backend y build-frontend (en paralelo) → deploy-qa → deploy-prod
 
@@ -405,7 +388,7 @@ aprobaria una cosa y subiria otra. con el &ref se despliega el commit que se ver
 va con & y no con ? porque el hook ya trae su ?key=. lo comprobe en render → deploys: cada deploy
 dice el commit del merge que lo disparo.
 
-5) el alcance de cada secret
+4) el alcance de cada secret
 
 los cuatro deploy hooks de render son secrets (con la url cualquiera despliega mi app), y cada uno
 vive en su environment, no en el repo:
@@ -420,7 +403,7 @@ la url no quede en el historial de la terminal.
 el token del registry no es un secret mio: es el GITHUB_TOKEN que github le da a cada corrida y
 vive lo que dura el job.
 
-6) que quedo por variable y que quedo adentro de la imagen
+que quedo por variable y que quedo adentro de la imagen:
 
 el front: el nginx.conf paso a ser una plantilla (default.conf.template en /etc/nginx/templates/).
 la imagen oficial de nginx reemplaza ${BACKEND_URL} y ${DNS_RESOLVER} al arrancar. en compose valen
@@ -437,7 +420,7 @@ adentro de la imagen queda solo lo que es igual en todos lados: el codigo, el si
 defaults de compose. la guia pide solo la connection string, pero mi app no arranca sin esas cinco
 variables (lo valida al arrancar y dice cual falta).
 
-7) que mira mi aprobador antes de aprobar
+5) que mira mi aprobador antes de aprobar
 
 1. que build y QA esten en verde.
 2. CUANTO tardo el smoke de QA. si dio verde en menos de lo que tarda render en construir (minutos),
@@ -463,7 +446,7 @@ RENDER_GIT_COMMIT) y el smoke de qa y de prod solo da verde cuando coincide con 
 a desplegar. en la corrida siguiente el smoke espero 65 segundos, hasta que render termino. ese
 fue el deploy que aprobe.
 
-8) la letra chica del free tier
+6) la letra chica del free tier
 
 - render duerme cada servicio a los 15 min sin trafico, y el primer pedido lo despierta con un
   cold start de hasta ~1 minuto. por eso el smoke reintenta 30 veces cada 20 s, con --max-time 10
@@ -480,7 +463,7 @@ fue el deploy que aprobe.
   andando. lo subi a 3000 con la variable Salud__TimeoutChequeoMs en render, sin tocar el codigo
   (en compose la base esta al lado y los 600 ms estan bien).
 
-9) que garantia pierdo porque render reconstruye
+7) que garantia pierdo porque render reconstruye
 
 mi pipeline publica la imagen que verifico, pero render no la usa: vuelve a construir desde el repo
 con el commit que le paso. o sea que despliego el commit verificado, no la imagen verificada. son
@@ -489,7 +472,7 @@ que se actualizo entre un build y otro, o una dependencia que cambio. si pasa, l
 no es lo que pasaron mis tests. se arregla en el tp7, cuando render deje de construir y ejecute la
 imagen del registry.
 
-10) que prueba mi smoke y que no
+8) que prueba mi smoke y que no
 
 prueba: que la api contesta, que la base responde, que el front se sirve, que el front llega a SU
 api a traves de la plantilla de nginx, y que la api corre el commit que se mando a desplegar.
@@ -502,7 +485,7 @@ http. y le agregue pegarle a front/api/health, que el del video no tiene.
 no prueba: que la app funcione bien (no hace login ni carga un partido), la version del front, ni
 que no haya errores para los usuarios.
 
-11) deployment pattern para una produccion real, y rollback
+9) deployment pattern para una produccion real, y rollback
 
 para esta app con usuarios reales usaria blue-green. es una app chica con una sola instancia, asi
 que rolling no aplica (no hay "tandas"), y canary pide metricas para decidir si el canario anda
@@ -538,13 +521,26 @@ antes de cada migracion, o migraciones que nunca borren en el mismo deploy.
 render tiene un boton de rollback propio, pero no lo uso: vuelve atras sin pasar por mi pipeline ni
 por la aprobacion.
 
-12) como comprobe que cada entorno usa su propia base
+10) que use
 
-cree mi cuenta desde el front de qa y aparecio en app_qa (select en "Usuarios") y no en app_prod.
-y [COMPLETAR: la prueba de "SOY PROD": un dato creado solo en app_prod desde el sql editor de neon,
-que aparece en la url de prod y no en la de qa].
+- registry: ghcr.io, con el GITHUB_TOKEN de cada corrida (ningun secret nuevo).
+- entornos: dos environments de github, qa (sin reglas) y production (con required reviewer: yo).
+- donde corre: render, 4 web services con docker (api y front, en qa y en prod). region virginia,
+  plan free.
+- base de datos: neon, un proyecto con dos bases separadas, app_qa y app_prod.
+- quien dispara el deploy: mi pipeline, con el deploy hook de render + &ref=<commit>. el auto-deploy
+  esta en off en los 4.
+- las tablas: las crea la app sola al arrancar (MigrateAsync de entity framework).
 
-13) problemas encontrados
+no use el postgres de render porque el gratis vence a los 30 dias, y neon es gratis permanente.
+
+los cinco puntos del contrato: dos entornos con su url (qa y prod), una base por entorno (app_qa y
+app_prod), front y back como contenedores a partir de mis dockerfiles (runtime docker en render), el
+deploy lo dispara el pipeline con el commit verificado (auto-deploy off), y prod detras de la
+aprobacion del environment production.
+
+
+11) problemas encontrados
 
 - la primera publicacion fallo con permission_denied: write_package. los paquetes
   historialcancha-backend y -frontend ya existian porque los habia subido a mano en el tp2, con mi
@@ -554,20 +550,32 @@ que aparece en la url de prod y no en la de qa].
   los jobs que fallaron. no quedo nada a medias: el paso que fallo era el ultimo.
 - el nombre de la imagen: github.repository trae mayusculas (NicolasBono/Historialcancha) y ghcr
   las rechaza. lo escribi a mano en minusculas.
-- el health decia baseDeDatos: error con la base andando (los 600 ms, punto 8).
-- el smoke daba verde contra la version vieja (punto 7). lo arregle con el commit en el health.
+- el health decia baseDeDatos: error con la base andando (los 600 ms, punto 6).
+- el smoke daba verde contra la version vieja (punto 5). lo arregle con el commit en el health.
+- el rechazo lo tuve que hacer dos veces. la primera segui el video y rechace por el mismo motivo que
+  el, "sabado no se trabaja" (https://github.com/NicolasBono/Historialcancha/actions/runs/39067827154).
+  despues me di cuenta que ese motivo no salia de mirar la corrida: no tenia nada que ver con lo que
+  se estaba por subir. con ayuda de la ia revise la corrida siguiente y encontramos un motivo real:
+  el smoke de qa habia dado verde 2 segundos despues de disparar los hooks, y en ese tiempo render no
+  puede construir, asi que habia probado la version anterior. ese es el rechazo que defiendo (punto 5).
 - un secret cargado como variable: el hook del front de qa lo puse en "environment variables" (se
   ve en texto claro y el job no lo encuentra). lo borre y lo cargue como secret.
 - git bash cambia las rutas que empiezan con / (docker exec ... /etc/nginx/...) y les pega
   C:/Program Files/Git adelante. se evita con MSYS_NO_PATHCONV=1.
 
-14) uso de ia en este tp
+12) uso de ia en este tp
+lo que hizo la ia: escribio los cambios del ci.yml (publicar la imagen, los jobs de qa y de prod y
+el smoke) y la plantilla de nginx. reviso mi app contra la guia y encontro que el health respondia
+200 con la base caida y que me faltaban variables en render. me ayudo a diagnosticar el
+permission_denied del registry y el timeout del health
 
-[COMPLETAR con tus palabras: que hizo la ia (escribio los cambios del ci.yml, la plantilla de
-nginx, el job de qa y de prod y el smoke; reviso la app contra la guia y encontro que mi health
-responde 200 con la base caida y que me faltaban variables; diagnostico el permission_denied y el
-timeout del health; armo este borrador) y que hice yo (las cuentas y servicios de render y neon,
-los environments y secrets, los merges, las aprobaciones y los rechazos, la prueba de soy prod).]
+lo que hice yo: cree las cuentas y los servicios de render y neon, los dos environments con la
+aprobacion en production y cargue los secrets. hice los merges, aprobe y rechace los deploys y
+cronometre el rollback.
+
+como lo verifique:  mire en render → deploys que cada deploy tenia el commit del merge, el
+/api/health de qa y prod devolviendo el commit, y el rechazo: vi que el smoke dio verde en 2
+segundos y por eso no lo aprobe
 
 ## TP7 - Contenedores en el pipeline + integracion y e2e
 
@@ -618,7 +626,7 @@ github para production, no sobre el ultimo de main.
   porque en el tp6 el health leia el commit de RENDER_GIT_COMMIT, y con una imagen render ya no
   construye desde git y esa variable deja de existir.
 - lo que no prueba el smoke: la version del FRONT. nginx no informa su commit. y eso me paso de
-  verdad (punto 9).
+  verdad (punto 10).
 
 5) que pruebas elegi en cada suite
 
@@ -656,15 +664,13 @@ se ve con la base de verdad (integracion) o con la pantalla de verdad (e2e).
 la integracion le habla a la api directo, asi que prueba que la api y la base se entienden. la e2e
 prueba que el front use bien esa api. por eso juntas dan un diagnostico:
 
-| integracion | e2e | que se rompio |
-|---|---|---|
-| verde | rojo | el front |
-| rojo | no corre | la api o la base |
-| verde | verde | nada de lo que estas dos ven |
+- integracion verde y e2e roja: se rompio el front.
+- integracion roja (y la e2e no corre): se rompio la api o la base.
+- las dos verdes: no se rompio nada de lo que estas dos ven.
 
 mi rotura: cambie en el front el nombre del campo que manda el alta (rival → nombreRival), sin
 tocar e2e/. compilaba, los unitarios pasaban (no prueban ese armado) y el smoke dio verde. en la
-corrida, integracion VERDE (3/3) y e2e ROJA (3/3), y deploy-prod ni pidio aprobacion. es la fila 1:
+corrida, integracion VERDE (3/3) y e2e ROJA (3/3), y deploy-prod ni pidio aprobacion. es el primer caso:
 la api esta sana (le hable con el nombre correcto y guardo y borro), el que no la usa bien es el
 front. lo confirme con el reporte, no con el codigo: en la traza, pestaña network, el POST manda
 nombreRival y la api contesta 400 "El rival es obligatorio". si hubiera roto la api, la integracion
@@ -672,8 +678,13 @@ se ponia roja y la e2e no llegaba a correr (su needs no se cumple).
 
 un cambio que solo atrapa la integracion: mi dominio no valida el largo del rival, pero la columna
 tiene un maximo de 80 caracteres. un rival de 100 pasa el unitario (el doble acepta cualquier cosa)
-y la base de verdad lo rechaza: la api contesta 500. [COMPLETAR: si lo agregas como prueba, o si lo
-dejas anotado como deuda]
+y la base de verdad lo rechaza: la api contesta 500. no lo agregue como prueba y lo dejo anotado como
+deuda. el motivo es que una prueba de integracion que espere un 500 estaria fijando un error como si
+fuera lo correcto: lo que esta mal es que el dominio no valide el largo. el arreglo de verdad es
+agregar esa regla al validador (maximo 80, igual que la columna) para que la api conteste 400 con un
+mensaje claro, con su unitario; y recien ahi una prueba de integracion que confirme que la base y el
+dominio dicen lo mismo. no lo hice en este tp porque cambia una regla de negocio y queria que este tp
+fuera solo sobre el pipeline y las pruebas.
 
 7) por que mi integracion es la amplia y no la estrecha
 
@@ -693,11 +704,18 @@ no: es peor que no tenerlo, porque acostumbra a ignorar el rojo. con el reintent
 recien en el segundo intento sale marcado "flaky" con la corrida verde, por eso el reporte se mira
 igual.
 
-y tuve uno de verdad (punto 9): el test tocaba "Guardar" antes de que la pagina terminara de cargar
+y tuve uno de verdad (punto 10): el test tocaba "Guardar" antes de que la pagina terminara de cargar
 su javascript. lo arregle esperando un estado de la app (el contador de partidos, que el script
 pinta cuando ya engancho el formulario), no con un sleep.
 
-9) problemas encontrados
+9) la misma imagen del front en qa y en prod
+
+la direccion del backend no esta adentro de la imagen: nginx la lee del entorno al arrancar (la
+plantilla del tp6). en render cada front tiene su BACKEND_URL (la api de SU entorno) y
+DNS_RESOLVER. adentro de la imagen queda el sitio y los defaults de compose. por eso la misma
+imagen sha-<commit> del front corre en qa y en prod y cada una habla con su api.
+
+10) problemas encontrados
 
 - el primer deploy a mano con el hook dio 400 "docker environment does not support image URLs":
   todavia no le habia cambiado la fuente a ese servicio.
@@ -720,21 +738,20 @@ pinta cuando ya engancho el formulario), no con un sleep.
   mientras las pruebas de A lo usan. lo reconoceria mirando en events que imagen corre qa y a que
   hora corrio el deploy-qa de B; la corrida A se rechaza y vale la B. por eso hago un merge por vez.
 
-10) la misma imagen del front en qa y en prod
-
-la direccion del backend no esta adentro de la imagen: nginx la lee del entorno al arrancar (la
-plantilla del tp6). en render cada front tiene su BACKEND_URL (la api de SU entorno) y
-DNS_RESOLVER. adentro de la imagen queda el sitio y los defaults de compose. por eso la misma
-imagen sha-<commit> del front corre en qa y en prod y cada una habla con su api.
-
 11) uso de ia en este tp
 
-[COMPLETAR con tus palabras: que hizo la ia (los cambios del ci.yml con imgURL y los jobs de
-pruebas, el commit horneado en la imagen, las dos suites de playwright, el diagnostico del front
-viejo y del test flaky, este borrador) y que hiciste vos (el cambio de fuente de los 4 servicios en
-render, los secrets, los merges, las aprobaciones, mirar el reporte y la traza). y como lo
-verificaste: tenes que poder explicar que verifica cada test, contra que entorno corre y que pasa
-si falla.]
+lo que hizo la ia: escribio los cambios del ci.yml para desplegar la imagen con imgURL y los jobs
+de integracion y e2e, el ARG COMMIT para hornear el commit en la imagen, y las dos suites de
+playwright. me ayudo a diagnosticar las dos cosas raras que pasaron: que la e2e de la corrida del
+arreglo corrio contra el front viejo, y el test flaky que tocaba "guardar" antes de tiempo. y armo
+el borrador de este decisiones.
+
+lo que hice yo: les cambie la fuente a los 4 servicios de render (y arregle el que tenia la imagen
+equivocada), cargue los secrets del usuario de prueba, elegi la tercera prueba de cada suite guiado por la ia,
+rompi la app a proposito, hice los merges y las aprobaciones
+
+como lo verifique: abri el reporte de la corrida roja y en la traza (network) vi que el POST
+mandaba nombreRival y la api contestaba 400; mire en los events de render que cada servicio corriera el sha de la corrida
 
 ## TP8 - Infraestructura como codigo
 
@@ -751,43 +768,71 @@ proveedores del tp6. providers fijados con version exacta y el .terraform.lock.h
 - render-oss/render 1.9.1: historialcancha-api-preprod y historialcancha-front-preprod, plan free,
   virginia, con la imagen de v7.0.0 (sha-575a5a1..., la que corre en prod).
 - hashicorp/random 3.7.2: genera la clave jwt (mi api no arranca sin una de 32+ caracteres).
-el estado queda en infra/terraform.tfstate, en mi maquina, ignorado por git: adentro estan la
-contrasena del rol y la cadena de conexion en texto plano. las llaves (NEON_API_KEY,
-RENDER_API_KEY, RENDER_OWNER_ID) las leen los providers del entorno, no estan en ningun .tf.
+el estado queda en infra/terraform.tfstate, en mi maquina, ignorado por git. no esta en el repo
+porque mi repo es publico y adentro estan la contrasena del rol y la cadena de conexion en texto
+plano. las llaves (NEON_API_KEY, RENDER_API_KEY, RENDER_OWNER_ID) las leen los providers del
+entorno, no estan en ningun .tf.
 lo que se deriva y no se copia: la cadena de conexion se arma con el host, la base, el rol y la
 contrasena que devuelve neon; la BACKEND_URL del front sale de la url de su propia api.
 
+lo que sigue siendo artesanal en mi cuenta: qa y prod enteros (los 4 servicios de render y las dos
+bases de neon, que clickee en el tp6), los environments y secrets de github con los deploy hooks,
+la proteccion de main, las llaves de api, el monitor de uptimerobot y sentry. si perdiera qa o
+prod, rehacerlos seria repetir clicks de memoria; preprod lo recreo con un apply.
+
 2) problemas y como los resolvi
 
-- neon respondio "org_id is required" con mi personal api key: mi cuenta vive dentro de una
-  organizacion. agregue org_id al neon_project (la guia no lo menciona).
+- neon respondio "org_id is required" con mi personal api key. el porque: mi cuenta vive dentro de
+  una organizacion, y en ese caso los proyectos no son del usuario sino de la organizacion. como una
+  misma llave personal puede tener acceso a varias organizaciones, neon necesita que le digas en
+  cual crear el proyecto. agregue org_id al neon_project, como variable (la guia no lo menciona
+  porque arma la cuenta sin organizacion).
 - mi api pide mas variables que la app de la guia: ConnectionStrings__HistorialCancha (no
-  __Default), Jwt__Key, App__MiEquipo y un origen cors. la clave jwt la genera terraform (nadie
-  la escribe ni la copia; cambia en cada recreacion, y en preprod no importa).
-- el origen cors no podia salir de la url del front: el front ya depende de la api (BACKEND_URL)
-  y terraform no acepta el ciclo. lo arme con el nombre del front
+  __Default), Jwt__Key, App__MiEquipo y un origen cors. el porque: mi api valida esas variables al
+  arrancar y si falta una no levanta (lo hice asi desde el tp6, para que un entorno mal configurado
+  falle al toque y no a la mitad). la clave jwt la genera terraform: nadie la escribe ni la copia.
+  cambia en cada recreacion, y en preprod no importa porque lo unico que se pierde son las sesiones
+  abiertas, y preprod se tira igual.
+- el origen cors no podia salir de la url del front. el porque: terraform crea primero lo que
+  otro necesita. el front necesita la url de la api (BACKEND_URL), asi que la api se crea antes; si
+  ademas la api necesitara la url del front, cada uno esperaria al otro y terraform rechaza ese
+  ciclo. lo arme con el nombre del front
   (https://historialcancha-front-preprod.onrender.com). no pasa nada si no coincide: el navegador
   llama a /api por el nginx del front, desde el mismo origen, y no usa cors.
 - la guia prueba /health y /api/tareas; en mi app es /api/health (mirando "baseDeDatos":"ok" y el
-  commit) y los datos piden login: probe registro, login y /api/partidos pasando por el front, asi
-  queda probado tambien que el front habla con SU api.
+  commit) y los datos piden login. el porque: la guia esta escrita para otra app, sin usuarios; en
+  la mia cada partido es de un usuario, asi que sin token la api contesta 401. probe registro,
+  login y /api/partidos pasando por el front, asi queda probado tambien que el front habla con SU
+  api.
 - lo no medido por la catedra, medido aca: al recrear, render devolvio las mismas urls (sin
-  sufijo); neon creo un proyecto nuevo con otro host, y no importo porque la cadena se deriva. la
-  base nace vacia y mi api corre las migraciones al arrancar: me pude registrar de nuevo con el
-  mismo dni.
-- el plan del destroy dice "6 to destroy" y no 5 como la guia: se suma la clave jwt.
-
-[COMPLETAR si queres: algo que te haya llamado la atencion de leer el plan, del drift (borrar
-app_preprod y ver que vuelve; la base_intrusa y neondb que el plan no ve) o del orden del destroy
-(front, api, base, rol, proyecto).]
+  sufijo), porque la url sale del nombre del servicio y el nombre estaba libre otra vez; neon creo
+  un proyecto nuevo con otro host, porque el host es propio de cada proyecto, y no importo porque
+  la cadena se deriva. la base nace vacia y mi api corre las migraciones al arrancar: me pude
+  registrar de nuevo con el mismo dni.
+- el plan del destroy dice "6 to destroy" y no 5 como la guia (y el del apply "6 to add"). los 5 de
+  la guia son el proyecto, el rol y la base de neon, y la api y el front de render. el sexto es la
+  clave jwt (random_password). el porque: la app de la guia no tiene usuarios, asi que no necesita
+  clave; la mia no arranca sin una Jwt__Key de 32 caracteres o mas. en vez de inventarla yo y
+  guardarla en una variable, la genera terraform, asi nadie la escribe ni la copia.
+  lo que me llamo la atencion es que random_password cuenta como recurso aunque no exista en ningun
+  proveedor: no crea nada ni en neon ni en render, vive solo en el estado de terraform. pero
+  terraform lo maneja igual que a los otros: lo crea en el apply, guarda el valor en el estado y lo
+  destruye en el destroy. destruirlo es olvidar esa clave, por eso en el proximo apply sale una
+  nueva y las sesiones viejas dejan de valer.
 
 3) uso de ia en este tp
+lo que hizo la ia: escribio el hcl de infra/ (main.tf, variables.tf y outputs.tf) adaptando la
+guia a mi app: las variables que pide mi api, la cadena de conexion derivada, la clave jwt y el
+cors. corrio init, plan, apply y destroy, y verifico por api que qa y prod seguian intactos
+despues de cada cosa. diagnostico el "org_id is required" de neon y el ciclo entre el front y la
+api. armo el commit y el pr.
 
-[COMPLETAR con tus palabras: que hizo la ia (el hcl de infra/, adaptar la guia a mi app, correr
-init/plan/apply/destroy, las verificaciones por api de que qa y prod seguian intactos, el commit y
-el pr, este borrador) y que hiciste vos (crear las llaves, borrar app_preprod y crear/borrar la
-base_intrusa en la consola de neon, mirar el estado y el front, el merge, la aprobacion de prod).
-y como lo verificaste: tenes que poder leer un plan en voz alta y decir que hace cada accion.]
+lo que hice yo: cree las llaves de neon y render, provoque el drift borrando app_preprod en la
+consola de neon (y cree y borre la base_intrusa para ver que el plan no la ve), entre al front de
+preprod a registrarme y cargar un partido, hice el merge y aprobe prod.
+
+como lo verifique: lei los planes antes de aplicar (que crea, que destruye y por que son 6 y no
+5), y despues de recrear preprod me pude registrar de nuevo con el mismo dni.
 
 ## TP9 - DevSecOps + observabilidad
 
@@ -807,7 +852,6 @@ ese verde es lo que me deja mergear en minutos.
 dependabot abrio 8 prs apenas llego el dependabot.yml a main. no mergee los otros: Identity.Core 10
 es de .net 10 (mi app es .net 9), coverlet y Test.Sdk suben de major y pueden mover la cobertura del
 gate, y las actions v6 a v7 tambien son major. quedan abiertos: no tocan main ni prod.
-[COMPLETAR si queres: algo tuyo sobre por que elegiste ese y no otro.]
 
 2) cuanto tardo el monitor, y mi operacion mas usada y la mas lenta
 
@@ -826,8 +870,6 @@ gate, y las actions v6 a v7 tambien son major. quedan abiertos: no tocan main ni
   /api/partidos (se pide en cada carga de pagina), p95 1,11 s. con eso abri la tarjeta "Perf: la
   autenticacion tarda 2,15 s en P95" en el tablero, con dos hipotesis: la base de neon dormida en
   el primer pedido, o el costo del hash de la contrasena.
-  [COMPLETAR: confirma en sentry los nombres completos de las operaciones (en la tabla se veian
-  cortados) y cual es la mas usada.]
 
 3) problemas y como los resolvi
 
@@ -851,11 +893,18 @@ gate, y las actions v6 a v7 tambien son major. quedan abiertos: no tocan main ni
 - el token de gh no tenia permiso sobre projects: la tarjeta la cree a mano.
 
 4) uso de ia en este tp
+lo que hizo la ia: adapto la guia a mi app. midio el health con HEAD antes de crear el monitor y
+encontro el 405, y escribio el arreglo con su prueba de integracion. escribio el dependabot.yml y
+me ayudo a analizar los 8 prs que abrio dependabot para elegir cual mergear. escribio el codigo de
+sentry en el back (con el CaptureException en el manejador de errores) y en el front (desde el cdn
+con integrity). antes de cada aprobacion de prod revisaba la corrida
 
-[COMPLETAR con tus palabras: que hizo la ia (adaptar la guia a mi app, medir el HEAD, el
-dependabot.yml, el arreglo del health y su prueba, analizar el pr de dependabot, el codigo de
-sentry en back y front, las verificaciones de cada corrida antes de aprobar, el tag, este
-borrador) y que hiciste vos (prender dependabot y codeql en settings, el monitor, el suspend y el
-resume en render, la cuenta y los proyectos de sentry, el SENTRY_DSN en render, usar la app de
-prod, la tarjeta, los merges y las aprobaciones). y como lo verificaste: tenes que poder mostrar
-cada pieza funcionando y decir que mira y que no mira.]
+lo que hice yo: prendi dependabot, codeql y la proteccion de secretos en settings. cree el monitor
+de uptimerobot, provoque la caida (suspend y resume de la api de prod en render) y lo pause.
+cree la cuenta y los proyectos de sentry y cargue el SENTRY_DSN en render con "save only". use la
+app de prod para generar datos, cree la tarjeta en el tablero e hice los merges y las
+aprobaciones.
+
+como lo verifique: me llego el mail de DOWN y el de UP y lo vi en el historial del monitor; vi
+aparecer "Falla de prueba del TP9" en issues de sentry; y mire en sentry las demoras de cada
+operacion para sacar la mas lenta y la mas usada.
