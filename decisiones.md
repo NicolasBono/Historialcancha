@@ -882,6 +882,13 @@ gate, y las actions v6 a v7 tambien son major. quedan abiertos: no tocan main ni
   lo cargo desde el cdn de sentry con version fijada (11.9.0) e integrity (si el archivo cambia,
   el navegador no lo ejecuta), y un js/observabilidad.js hace el init en las 3 paginas. contra:
   dependabot no vigila esa version.
+  el front tiene trazas igual que el back: uso el bundle que las trae (bundle.tracing.min.js, no
+  el bundle.min.js que solo manda errores), y el init las prende con browserTracingIntegration()
+  y tracesSampleRate 1.0. como no hay @sentry/react en el package.json, buscarlo ahi no lo
+  encuentra: esta en el script de cada html (index.html, login.html y estadisticas.html) y en
+  js/observabilidad.js. lo comprobe en sentry: el dashboard Frontend Overview del proyecto del
+  front muestra las cargas de pagina con sus tiempos y el Performance Score de los Web Vitals,
+  que solo los puede mandar el sdk del navegador.
 - el dsn del back va como variable SENTRY_DSN solo en la api de prod. en render la guarde con
   "save only": en settings los servicios de prod tienen una imagen vieja, y "save and deploy" la
   habria desplegado. verifique por la api de render que no se disparo ningun deploy. el dsn del
